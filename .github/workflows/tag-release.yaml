@@ -48,6 +48,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Daily Release
-        run: make TAG=${GITHUB_REF} RELEASE_VER=${GITHUB_REF} CC=/usr/local/musl/bin/musl-gcc release
+      - name: Tag Release
+        run: make TAG=${GITHUB_REF#refs/*/} RELEASE_VER=${GITHUB_REF} CC=/usr/local/musl/bin/musl-gcc release
         working-directory: ./src/github.com/${{ github.repository }}
