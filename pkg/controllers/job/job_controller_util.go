@@ -37,7 +37,8 @@ func MakePodName(jobName string, taskName string, index int) string {
 	return fmt.Sprintf(jobhelpers.PodNameFmt, jobName, taskName, index)
 }
 
-func createJobPod(job *batch.Job, template *v1.PodTemplateSpec, topologyPolicy batch.NumaPolicy, ix int, jobForwarding bool, executorId string) *v1.Pod {
+func createJobPod(job *batch.Job, template *v1.PodTemplateSpec, topologyPolicy batch.NumaPolicy,
+	ix int, jobForwarding bool, envVarOverrides map[string]string) *v1.Pod {
 	templateCopy := template.DeepCopy()
 
 	pod := &v1.Pod{
@@ -53,8 +54,12 @@ func createJobPod(job *batch.Job, template *v1.PodTemplateSpec, topologyPolicy b
 		Spec: templateCopy.Spec,
 	}
 
-	if executorId != "" {
-		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, v1.EnvVar{Name: "SPARK_EXECUTOR_ID", Value: executorId})
+	// For every container in the pod, iterate over the envOverrides map and set an environment variable
+	// for each key-value pair
+	for _, container := range pod.Spec.Containers {
+		for name, value := range envVarOverrides {
+			container.Env = append(container.Env, v1.EnvVar{Name: name, Value: value})
+		}
 	}
 
 	// If no scheduler name in Pod, use scheduler name from Job.
