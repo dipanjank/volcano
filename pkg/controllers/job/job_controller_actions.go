@@ -315,19 +315,24 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 		*container = append(*container, err)
 	}
 
-	annotation := job.Annotations
-	envVarName := annotation["dynamic-env-var"]
 	var envValues []string
 
-	for key, value := range annotation {
-		if strings.HasPrefix(key, envVarName) {
-			envValues = append(envValues, value)
+	// If the dynamic-env-var annotation exists in the job, then collect the list of
+	// all other annotations where the key starts with the value of job.Annotations["dynamic-env-var"]
+	dynamicEnvVarName, found := job.Annotations["dynamic-env-var"]
+	if found {
+		for key, value := range job.Annotations {
+			if strings.HasPrefix(key, dynamicEnvVarName) {
+				envValues = append(envValues, value)
+			}
 		}
+		if len(envValues) == 0 {
+			klog.Warningf("No values specified for dynamic env var: %s", dynamicEnvVarName)
+		}
+		klog.Infof("Apply dynamic Env Var %s: %s ", dynamicEnvVarName, envValues)
 	}
-	klog.Infof("Job Annotation: %s", annotation)
-	klog.Infof("Executor ID list: %s", envValues)
 
-	initIndex := 0
+	valueIndex := 0
 
 	for _, ts := range job.Spec.Tasks {
 		ts.Template.Name = ts.Name
@@ -342,8 +347,15 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 		for i := 0; i < int(ts.Replicas); i++ {
 			podName := fmt.Sprintf(jobhelpers.PodNameFmt, job.Name, name, i)
 			if pod, found := pods[podName]; !found {
-				newPod := createJobPod(job, tc, ts.TopologyPolicy, i, jobForwarding, envValues[initIndex])
-				initIndex += 1
+
+				envVarOverrides := make(map[string]string)
+
+				if valueIndex < len(envValues) {
+					envVarOverrides[dynamicEnvVarName] = envValues[valueIndex]
+				}
+
+				newPod := createJobPod(job, tc, ts.TopologyPolicy, i, jobForwarding, envVarOverrides)
+				valueIndex += 1
 				if err := cc.pluginOnPodCreate(job, newPod); err != nil {
 					return err
 				}
