@@ -101,13 +101,18 @@ func (pg *pgcontroller) createNormalPodPGIfNotExist(pod *v1.Pod) error {
 		if value, ok := pod.Annotations[scheduling.PodPreemptable]; ok {
 			obj.Annotations[scheduling.PodPreemptable] = value
 		}
+		if value, ok := pod.Annotations[scheduling.PodReclaimable]; ok {
+			obj.Annotations[scheduling.PodReclaimable] = value
+		}
 		if value, ok := pod.Annotations[scheduling.RevocableZone]; ok {
 			obj.Annotations[scheduling.RevocableZone] = value
 		}
 		if value, ok := pod.Labels[scheduling.PodPreemptable]; ok {
 			obj.Labels[scheduling.PodPreemptable] = value
 		}
-
+		if value, ok := pod.Labels[scheduling.PodReclaimable]; ok {
+			obj.Labels[scheduling.PodReclaimable] = value
+		}
 		if value, found := pod.Annotations[scheduling.JDBMinAvailable]; found {
 			obj.Annotations[scheduling.JDBMinAvailable] = value
 		} else if value, found := pod.Annotations[scheduling.JDBMaxUnavailable]; found {

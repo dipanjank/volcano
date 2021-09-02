@@ -366,6 +366,10 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 
 			for _, preemptee := range reclaimees {
 				rjob := ssn.Jobs[preemptee.Job]
+				if !rjob.Reclaimable {
+					klog.V(4).Infof("DRF: Job %s/%s is not reclaimable, skip", rjob.Namespace, rjob.Name)
+					continue
+				}
 				rqueue := ssn.Queues[rjob.Queue]
 
 				// update hdrf of reclaimee job
