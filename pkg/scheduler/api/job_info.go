@@ -465,6 +465,7 @@ func (ji *JobInfo) Clone() *JobInfo {
 		TaskMinAvailable: ji.TaskMinAvailable,
 		Tasks:            tasksMap{},
 		Preemptable:      ji.Preemptable,
+		Reclaimable:      ji.Reclaimable,
 		RevocableZone:    ji.RevocableZone,
 		Budget:           ji.Budget.Clone(),
 	}
