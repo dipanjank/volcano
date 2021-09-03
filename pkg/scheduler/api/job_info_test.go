@@ -90,8 +90,7 @@ func TestAddTaskInfo(t *testing.T) {
 		}
 
 		if !jobInfoEqual(ps, test.expected) {
-			t.Errorf("podset info %d: \n expected: %v, \n got: %v \n",
-				i, test.expected, ps)
+			t.Errorf("Test %d: Expected JobInfo & Actual JobInfo did not match", i)
 		}
 	}
 }
