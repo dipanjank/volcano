@@ -75,6 +75,9 @@ func TestAddTaskInfo(t *testing.T) {
 						case01Task4.UID: case01Task4,
 					},
 				},
+				Preemptable: false,
+				Reclaimable: true,
+
 				NodesFitErrors:   make(map[TaskID]*FitErrors),
 				TaskMinAvailable: make(map[TaskID]int32),
 			},
