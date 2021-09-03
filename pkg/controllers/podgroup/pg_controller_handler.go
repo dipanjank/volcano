@@ -18,6 +18,7 @@ package podgroup
 
 import (
 	"context"
+	"volcano.sh/volcano/pkg/scheduler/api"
 
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -101,8 +102,8 @@ func (pg *pgcontroller) createNormalPodPGIfNotExist(pod *v1.Pod) error {
 		if value, ok := pod.Annotations[scheduling.PodPreemptable]; ok {
 			obj.Annotations[scheduling.PodPreemptable] = value
 		}
-		if value, ok := pod.Annotations[scheduling.PodReclaimable]; ok {
-			obj.Annotations[scheduling.PodReclaimable] = value
+		if value, ok := pod.Annotations[api.PodReclaimable]; ok {
+			obj.Annotations[api.PodReclaimable] = value
 		}
 		if value, ok := pod.Annotations[scheduling.RevocableZone]; ok {
 			obj.Annotations[scheduling.RevocableZone] = value
@@ -110,8 +111,8 @@ func (pg *pgcontroller) createNormalPodPGIfNotExist(pod *v1.Pod) error {
 		if value, ok := pod.Labels[scheduling.PodPreemptable]; ok {
 			obj.Labels[scheduling.PodPreemptable] = value
 		}
-		if value, ok := pod.Labels[scheduling.PodReclaimable]; ok {
-			obj.Labels[scheduling.PodReclaimable] = value
+		if value, ok := pod.Labels[api.PodReclaimable]; ok {
+			obj.Labels[api.PodReclaimable] = value
 		}
 		if value, found := pod.Annotations[scheduling.JDBMinAvailable]; found {
 			obj.Annotations[scheduling.JDBMinAvailable] = value

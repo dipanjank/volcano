@@ -119,7 +119,7 @@ func TestReclaimWithHDRF(t *testing.T) {
 						Name:      "pg1",
 						Namespace: "c1",
 						Annotations: map[string]string{
-							schedulingv1.PodReclaimable: "false",
+							api.PodReclaimable: "false",
 						},
 					},
 					Spec: schedulingv1.PodGroupSpec{

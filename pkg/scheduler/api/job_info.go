@@ -329,7 +329,7 @@ func getBoolAnnotationValueWithDefault(pg *PodGroup, annotation string, defaultV
 
 // extractReclaimable return volcano.sh/reclaimable value for job
 func (ji *JobInfo) extractReclaimable(pg *PodGroup) bool {
-	return getBoolAnnotationValueWithDefault(pg, v1beta1.PodReclaimable, true)
+	return getBoolAnnotationValueWithDefault(pg, PodReclaimable, true)
 }
 
 // extractPreemptable return volcano.sh/preemptable value for job
