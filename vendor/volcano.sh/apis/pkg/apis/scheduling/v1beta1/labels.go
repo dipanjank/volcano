@@ -35,9 +35,6 @@ const QueueNameAnnotationKey = GroupName + "/queue-name"
 // PodPreemptable is the key of preemptable
 const PodPreemptable = "volcano.sh/preemptable"
 
-// Used by HDRF
-const PodReclaimable = "volcano.sh/reclaimable"
-
 //RevocableZone is the key of revocable-zone
 const RevocableZone = "volcano.sh/revocable-zone"
 
