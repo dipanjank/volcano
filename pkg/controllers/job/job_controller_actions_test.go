@@ -306,12 +306,12 @@ func TestSyncJobFunc(t *testing.T) {
 				t.Errorf("Expected Total number of pods to be same as podlist count: Expected: %d, Got: %d in case: %d", testcase.TotalNumPods, len(podList.Items), i)
 			}
 
-			var pod_ids []string
+			var podIds []string
 			for _, pod := range podList.Items {
-				pod_ids = append(pod_ids, pod.Labels["VK_POD_ID"])
+				podIds = append(podIds, pod.Labels["VK_POD_ID"])
 			}
 
-			if !reflect.DeepEqual(pod_ids, []string{"0", "1", "2", "3", "4", "5"}) {
+			if !reflect.DeepEqual(podIds, []string{"0", "1", "2", "3", "4", "5"}) {
 				t.Error("Error when incrementing the counter of the jobs")
 			}
 		})
