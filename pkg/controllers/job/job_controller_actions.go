@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"strings"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -272,24 +272,9 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 		*container = append(*container, err)
 	}
 
-	var envValues []string
+	count := job.Status.Counter
 
-	// If the dynamic-env-var annotation exists in the job, then collect the list of
-	// all other annotations where the key starts with the value of job.Annotations["dynamic-env-var"]
-	dynamicEnvVarName, found := job.Annotations["dynamic-env-var"]
-	if found {
-		for key, value := range job.Annotations {
-			if strings.HasPrefix(key, dynamicEnvVarName) {
-				envValues = append(envValues, value)
-			}
-		}
-		if len(envValues) == 0 {
-			klog.Warningf("No values specified for dynamic env var: %s", dynamicEnvVarName)
-		}
-		klog.Infof("Apply dynamic Env Var %s: %s ", dynamicEnvVarName, envValues)
-	}
-
-	valueIndex := 0
+	counterLabel, counterLabelFound := job.Annotations["volcano.sh/counter-label"]
 
 	for _, ts := range job.Spec.Tasks {
 		ts.Template.Name = ts.Name
@@ -305,17 +290,20 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 			podName := fmt.Sprintf(jobhelpers.PodNameFmt, job.Name, name, i)
 			if pod, found := pods[podName]; !found {
 
-				envVarOverrides := make(map[string]string)
+				newPod := createJobPod(job, tc, i, make(map[string]string))
 
-				if valueIndex < len(envValues) {
-					envVarOverrides[dynamicEnvVarName] = envValues[valueIndex]
-				}
-				klog.Infof("envVarOverrides is %s for replica %d", envVarOverrides, i)
-				newPod := createJobPod(job, tc, i, envVarOverrides)
-				valueIndex++
 				if err := cc.pluginOnPodCreate(job, newPod); err != nil {
 					return err
 				}
+
+				exec := strconv.Itoa(int(count))
+
+				if counterLabelFound {
+					newPod.Labels[counterLabel] = exec
+				}
+
+				count++
+
 				podToCreate = append(podToCreate, newPod)
 			} else {
 				delete(pods, podName)
@@ -407,6 +395,7 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 		TaskStatusCount:     taskStatusCount,
 		ControlledResources: job.Status.ControlledResources,
 		RetryCount:          job.Status.RetryCount,
+		Counter: 			 count,
 	}
 
 	if updateStatus != nil {

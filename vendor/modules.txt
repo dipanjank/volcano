@@ -745,7 +745,7 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
 ## explicit
 sigs.k8s.io/yaml
-# volcano.sh/apis v0.0.0-20210518032656-21e2239e42bc
+# volcano.sh/apis v0.0.0-20210518032656-21e2239e42bc => github.com/Tincoboekestijn/apis v0.0.0-20210907095657-54a1ba9c4b64
 ## explicit
 volcano.sh/apis/pkg/apis/batch/v1alpha1
 volcano.sh/apis/pkg/apis/bus/v1alpha1
@@ -805,3 +805,4 @@ volcano.sh/apis/pkg/client/listers/scheduling/v1beta1
 # k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.19.6
 # k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.19.6
 # k8s.io/sample-controller => k8s.io/sample-controller v0.19.6
+# volcano.sh/apis => github.com/Tincoboekestijn/apis v0.0.0-20210907095657-54a1ba9c4b64

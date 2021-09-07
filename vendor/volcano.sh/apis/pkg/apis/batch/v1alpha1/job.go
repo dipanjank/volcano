@@ -317,6 +317,10 @@ type JobStatus struct {
 	// The resources that controlled by this job, e.g. Service, ConfigMap
 	// +optional
 	ControlledResources map[string]string `json:"controlledResources,omitempty" protobuf:"bytes,11,opt,name=controlledResources"`
+
+	// The unique id that is incremented for each new pod that is allocated
+	// +optional
+	Counter int32 `json:"counter,omitempty" protobuf:"bytes,12,opt,name=counter"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
