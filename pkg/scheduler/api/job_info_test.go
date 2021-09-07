@@ -75,6 +75,9 @@ func TestAddTaskInfo(t *testing.T) {
 						case01Task4.UID: case01Task4,
 					},
 				},
+				Preemptable: false,
+				Reclaimable: true,
+
 				NodesFitErrors:   make(map[TaskID]*FitErrors),
 				TaskMinAvailable: make(map[TaskID]int32),
 			},
@@ -90,8 +93,7 @@ func TestAddTaskInfo(t *testing.T) {
 		}
 
 		if !jobInfoEqual(ps, test.expected) {
-			t.Errorf("podset info %d: \n expected: %v, \n got: %v \n",
-				i, test.expected, ps)
+			t.Errorf("Test %d: Expected JobInfo & Actual JobInfo did not match", i)
 		}
 	}
 }
@@ -141,6 +143,9 @@ func TestDeleteTaskInfo(t *testing.T) {
 					Pending: {case01Task1.UID: case01Task1},
 					Running: {case01Task3.UID: case01Task3},
 				},
+				Preemptable: false,
+				Reclaimable: true,
+
 				NodesFitErrors:   make(map[TaskID]*FitErrors),
 				TaskMinAvailable: make(map[TaskID]int32),
 			},
@@ -166,6 +171,9 @@ func TestDeleteTaskInfo(t *testing.T) {
 						case02Task3.UID: case02Task3,
 					},
 				},
+				Preemptable: false,
+				Reclaimable: true,
+
 				NodesFitErrors:   make(map[TaskID]*FitErrors),
 				TaskMinAvailable: make(map[TaskID]int32),
 			},
@@ -186,8 +194,7 @@ func TestDeleteTaskInfo(t *testing.T) {
 		}
 
 		if !jobInfoEqual(ps, test.expected) {
-			t.Errorf("podset info %d: \n expected: %v, \n got: %v \n",
-				i, test.expected, ps)
+			t.Errorf("Test %d: Expected JobInfo & Actual JobInfo did not match", i)
 		}
 	}
 }
