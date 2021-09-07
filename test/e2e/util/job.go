@@ -187,8 +187,8 @@ func CreateJobInner(ctx *TestContext, jobSpec *JobSpec) (*batchv1alpha1.Job, err
 
 	job := &batchv1alpha1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      jobSpec.Name,
-			Namespace: ns,
+			Name:        jobSpec.Name,
+			Namespace:   ns,
 			Annotations: jobSpec.Annotation,
 		},
 		Spec: batchv1alpha1.JobSpec{

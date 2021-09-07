@@ -395,7 +395,7 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 		TaskStatusCount:     taskStatusCount,
 		ControlledResources: job.Status.ControlledResources,
 		RetryCount:          job.Status.RetryCount,
-		Counter: 			 count,
+		Counter:             count,
 	}
 
 	if updateStatus != nil {
