@@ -195,8 +195,8 @@ func TestSyncJobFunc(t *testing.T) {
 			Name: "SyncJob success Case",
 			Job: &v1alpha1.Job{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "job1",
-					Namespace: namespace,
+					Name:        "job1",
+					Namespace:   namespace,
 					Annotations: map[string]string{"volcano.sh/counter-label": "VK_POD_ID"},
 				},
 				Spec: v1alpha1.JobSpec{
@@ -254,7 +254,7 @@ func TestSyncJobFunc(t *testing.T) {
 			},
 			Pods: map[string]*v1.Pod{
 				"job1-task1-0": buildPod(namespace, "job1-task1-0", v1.PodRunning, map[string]string{"VK_POD_ID": "0"}),
-				"job1-task1-1": buildPod(namespace, "job1-task1-1", v1.PodRunning,map[string]string{"VK_POD_ID": "1"}),
+				"job1-task1-1": buildPod(namespace, "job1-task1-1", v1.PodRunning, map[string]string{"VK_POD_ID": "1"}),
 			},
 			TotalNumPods: 6,
 			Plugins:      []string{"svc", "ssh", "env"},
@@ -275,8 +275,6 @@ func TestSyncJobFunc(t *testing.T) {
 			testcase.JobInfo.Job.Spec.Plugins = jobPlugins
 
 			fakeController.pgInformer.Informer().GetIndexer().Add(testcase.PodGroup)
-
-
 
 			for _, pod := range testcase.Pods {
 				_, err := fakeController.kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
@@ -310,10 +308,10 @@ func TestSyncJobFunc(t *testing.T) {
 
 			var pod_ids []string
 			for _, pod := range podList.Items {
-				pod_ids = append(pod_ids, pod.Labels["VK_POD_ID"])  // note the = instead of :=
+				pod_ids = append(pod_ids, pod.Labels["VK_POD_ID"])
 			}
 
-			if !reflect.DeepEqual(pod_ids, []string{"0", "1", "2", "3", "4", "5"}){
+			if !reflect.DeepEqual(pod_ids, []string{"0", "1", "2", "3", "4", "5"}) {
 				t.Error("Error when incrementing the counter of the jobs")
 			}
 		})
