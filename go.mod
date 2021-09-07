@@ -51,4 +51,5 @@ replace (
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.19.6
 	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.19.6
 	k8s.io/sample-controller => k8s.io/sample-controller v0.19.6
+	volcano.sh/apis => github.com/Tincoboekestijn/apis master-counter
 )

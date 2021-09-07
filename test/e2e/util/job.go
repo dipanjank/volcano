@@ -68,6 +68,7 @@ type JobSpec struct {
 	// ttl seconds after job finished
 	Ttl        *int32
 	MinSuccess *int32
+	Annotation map[string]string
 }
 
 func Namespace(context *TestContext, job *JobSpec) string {
@@ -188,6 +189,7 @@ func CreateJobInner(ctx *TestContext, jobSpec *JobSpec) (*batchv1alpha1.Job, err
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      jobSpec.Name,
 			Namespace: ns,
+			Annotations: jobSpec.Annotation,
 		},
 		Spec: batchv1alpha1.JobSpec{
 			SchedulerName:           "volcano",

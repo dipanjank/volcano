@@ -18,14 +18,11 @@ package schedulingaction
 
 import (
 	"context"
-
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	schedulingv1beta1 "volcano.sh/apis/pkg/apis/scheduling/v1beta1"
 
 	e2eutil "volcano.sh/volcano/test/e2e/util"
@@ -224,71 +221,6 @@ var _ = ginkgo.Describe("Job E2E Test", func() {
 		}
 		allocateJob := e2eutil.CreateJob(ctx, job)
 		err = e2eutil.WaitJobPending(ctx, allocateJob)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	})
-
-	ginkgo.It("allocate don't work when queue is overused", func() {
-		q1 := "q1"
-		q2 := "q2"
-		ctx := e2eutil.InitTestContext(e2eutil.Options{
-			Queues:        []string{q1, q2},
-			NodesNumLimit: 2,
-			NodesResourceLimit: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse("2000m"),
-				corev1.ResourceMemory: resource.MustParse("2048Mi")},
-		})
-
-		defer e2eutil.CleanupTestContext(ctx)
-
-		slot1 := corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse("1000m"),
-			corev1.ResourceMemory: resource.MustParse("1024Mi")}
-		slot2 := corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse("1000m"),
-			corev1.ResourceMemory: resource.MustParse("1024Mi")}
-		slot3 := corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse("500m"),
-			corev1.ResourceMemory: resource.MustParse("512Mi")}
-		slot4 := corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse("500m"),
-			corev1.ResourceMemory: resource.MustParse("512Mi")}
-
-		job := &e2eutil.JobSpec{
-			Tasks: []e2eutil.TaskSpec{
-				{
-					Img: e2eutil.DefaultNginxImage,
-					Req: slot1,
-					Min: 1,
-					Rep: 1,
-				},
-			},
-		}
-
-		job.Name = "j1-q1"
-		job.Queue = q1
-		queue1Job1 := e2eutil.CreateJob(ctx, job)
-		err := e2eutil.WaitJobStateReady(ctx, queue1Job1)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		job.Name = "j2-q1"
-		job.Queue = q1
-		job.Tasks[0].Req = slot2
-		queue1Job2 := e2eutil.CreateJob(ctx, job)
-		err = e2eutil.WaitJobStateReady(ctx, queue1Job2)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		job.Name = "j3-q2"
-		job.Queue = q2
-		job.Tasks[0].Req = slot3
-		queue2Job3 := e2eutil.CreateJob(ctx, job)
-		err = e2eutil.WaitJobStateReady(ctx, queue2Job3)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		job.Name = "j4-q1"
-		job.Queue = q1
-		job.Tasks[0].Req = slot4
-		queue1Job4 := e2eutil.CreateJob(ctx, job)
-		err = e2eutil.WaitJobPending(ctx, queue1Job4)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	})
 })

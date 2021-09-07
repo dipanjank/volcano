@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 
 	v1 "k8s.io/api/core/v1"
@@ -190,11 +191,13 @@ func TestSyncJobFunc(t *testing.T) {
 		ExpectVal      error
 	}{
 		{
+
 			Name: "SyncJob success Case",
 			Job: &v1alpha1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "job1",
 					Namespace: namespace,
+					Annotations: map[string]string{"volcano.sh/counter-label": "VK_POD_ID"},
 				},
 				Spec: v1alpha1.JobSpec{
 					Tasks: []v1alpha1.TaskSpec{
@@ -221,6 +224,7 @@ func TestSyncJobFunc(t *testing.T) {
 					State: v1alpha1.JobState{
 						Phase: v1alpha1.Pending,
 					},
+					Counter: 2,
 				},
 			},
 			PodGroup: &schedulingv1alpha2.PodGroup{
@@ -249,8 +253,8 @@ func TestSyncJobFunc(t *testing.T) {
 				},
 			},
 			Pods: map[string]*v1.Pod{
-				"job1-task1-0": buildPod(namespace, "job1-task1-0", v1.PodRunning, nil),
-				"job1-task1-1": buildPod(namespace, "job1-task1-1", v1.PodRunning, nil),
+				"job1-task1-0": buildPod(namespace, "job1-task1-0", v1.PodRunning, map[string]string{"VK_POD_ID": "0"}),
+				"job1-task1-1": buildPod(namespace, "job1-task1-1", v1.PodRunning,map[string]string{"VK_POD_ID": "1"}),
 			},
 			TotalNumPods: 6,
 			Plugins:      []string{"svc", "ssh", "env"},
@@ -271,6 +275,8 @@ func TestSyncJobFunc(t *testing.T) {
 			testcase.JobInfo.Job.Spec.Plugins = jobPlugins
 
 			fakeController.pgInformer.Informer().GetIndexer().Add(testcase.PodGroup)
+
+
 
 			for _, pod := range testcase.Pods {
 				_, err := fakeController.kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
@@ -300,6 +306,15 @@ func TestSyncJobFunc(t *testing.T) {
 			}
 			if testcase.TotalNumPods != len(podList.Items) {
 				t.Errorf("Expected Total number of pods to be same as podlist count: Expected: %d, Got: %d in case: %d", testcase.TotalNumPods, len(podList.Items), i)
+			}
+
+			var pod_ids []string
+			for _, pod := range podList.Items {
+				pod_ids = append(pod_ids, pod.Labels["VK_POD_ID"])  // note the = instead of :=
+			}
+
+			if !reflect.DeepEqual(pod_ids, []string{"0", "1", "2", "3", "4", "5"}){
+				t.Error("Error when incrementing the counter of the jobs")
 			}
 		})
 	}
