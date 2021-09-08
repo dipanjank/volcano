@@ -321,13 +321,15 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 		go func(pod *v1.Pod) {
 			defer waitCreationGroup.Done()
 
-			exec := strconv.Itoa(int(count))
+			countStr := strconv.Itoa(int(count))
 
 			if counterLabelFound {
-				pod.Labels[counterLabel] = exec
+				_, exists := pod.Labels[counterLabel]
+				if !exists {
+					pod.Labels[counterLabel] = countStr
+					count++
+				}
 			}
-
-			count++
 
 			newPod, err := cc.kubeClient.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 			if err != nil && !apierrors.IsAlreadyExists(err) {
