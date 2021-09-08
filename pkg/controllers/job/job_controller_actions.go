@@ -321,13 +321,12 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 		go func(pod *v1.Pod) {
 			defer waitCreationGroup.Done()
 
-			countStr := strconv.Itoa(int(count))
-
 			if counterLabelFound {
 				_, exists := pod.Labels[counterLabel]
 				if !exists {
-					pod.Labels[counterLabel] = countStr
-					count++
+					currentCount := atomic.LoadInt32(&count)
+					pod.Labels[counterLabel] = strconv.Itoa(int(currentCount))
+					atomic.AddInt32(&count, 1)
 				}
 			}
 
@@ -398,7 +397,7 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 		TaskStatusCount:     taskStatusCount,
 		ControlledResources: job.Status.ControlledResources,
 		RetryCount:          job.Status.RetryCount,
-		Counter:             count,
+		Counter:             atomic.LoadInt32(&count),
 	}
 
 	if updateStatus != nil {
