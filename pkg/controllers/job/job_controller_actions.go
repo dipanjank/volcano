@@ -324,11 +324,15 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 		}
 	}
 
+	klog.V(3).Infof("Job <%s>: Going to create %d new pods\n", job.Name, len(podToCreate))
+
 	waitCreationGroup := sync.WaitGroup{}
 	waitCreationGroup.Add(len(podToCreate))
 	for _, pod := range podToCreate {
 		go func(pod *v1.Pod) {
 			defer waitCreationGroup.Done()
+			klog.V(3).Infof("Job <%s>: Going to create new pod <%s> with counterLabelFound <%s>\n",
+				job.Name, pod.Name, strconv.FormatBool(counterLabelFound))
 
 			if counterLabelFound {
 				existingCounter, exists := pod.Labels[counterLabel]
