@@ -19,7 +19,6 @@ package validate
 import (
 	"context"
 	"fmt"
-	"strings"
 	"k8s.io/api/admission/v1beta1"
 	whv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	v1 "k8s.io/api/core/v1"
@@ -32,8 +31,8 @@ import (
 	k8score "k8s.io/kubernetes/pkg/apis/core"
 	k8scorev1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	k8scorevalid "k8s.io/kubernetes/pkg/apis/core/validation"
+	"strings"
 	"time"
-
 	"volcano.sh/apis/pkg/apis/batch/v1alpha1"
 	schedulingv1beta1 "volcano.sh/apis/pkg/apis/scheduling/v1beta1"
 	jobhelpers "volcano.sh/volcano/pkg/controllers/job/helpers"
@@ -193,8 +192,8 @@ func validateJobCreate(job *v1alpha1.Job, reviewResponse *v1beta1.AdmissionRespo
 	if dynamicQueue, ok := job.Annotations["volcano.sh/dynamic-queue"]; ok {
 		var queues = strings.Split(dynamicQueue, "/")
 		msg += createDynamicQueue(queues, []int32{}, []string{})
-		//do something here
 	}
+
 
 	queue, err := config.VolcanoClient.SchedulingV1beta1().Queues().Get(context.TODO(), job.Spec.Queue, metav1.GetOptions{})
 	if err != nil {
@@ -226,11 +225,8 @@ func createDynamicQueue(queues []string, previousWeight []int32, previousQueues 
 		return createDynamicQueue(remainderQueue, newWeight, newQueues)
 	}
 
-	// Get the root queue
-	rootQueue, err := config.VolcanoClient.SchedulingV1beta1().Queues().Get(context.TODO(), queueName, metav1.GetOptions{})
-
 	// Check if the root queue exist
-	if err != nil {
+	if rootQueue, err := config.VolcanoClient.SchedulingV1beta1().Queues().Get(context.TODO(), queueName, metav1.GetOptions{}); err != nil {
 		klog.V(3).Infof("Queue `%s` does not exist, so we will try to create one", queueName)
 
 		newWeight = append(previousWeight, 1)
@@ -250,19 +246,17 @@ func createDynamicQueue(queues []string, previousWeight []int32, previousQueues 
 			Spec: schedulingv1beta1.QueueSpec{
 				Weight: 1,
 			},
+			Status: schedulingv1beta1.QueueStatus{
+				State: schedulingv1beta1.QueueStateOpen,
+			},
 		}
 
-		_, err := config.VolcanoClient.SchedulingV1beta1().Queues().Create(context.TODO(), &queue, metav1.CreateOptions{})
-
-
-		if err != nil {
-			return fmt.Sprintf("Unable to create the queue: %v", err)
+		if _, err := config.VolcanoClient.SchedulingV1beta1().Queues().Create(context.TODO(), &queue, metav1.CreateOptions{}); err != nil {
+			return fmt.Sprintf("Unable to create the dynamic queue: %v", err)
 		}
 
-		poll_err := wait.PollImmediate(time.Second / 2, time.Second * 5, isQueueRunning(queueName))
-
-		if poll_err != nil {
-			return fmt.Sprintf("Unable to start the queue: %v", err)
+		if err := wait.PollImmediate(time.Second / 2, time.Second * 5, isQueueRunning(queueName)); err != nil {
+			return fmt.Sprintf("Unable to start the dynamic queue: %v", err)
 		}
 
 	} else if rootQueue.Status.State != schedulingv1beta1.QueueStateOpen {
