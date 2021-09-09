@@ -317,7 +317,7 @@ func TestSyncJobFunc(t *testing.T) {
 			// pods can appear out of order, so we need to sort it before comparing with expected
 			sort.Ints(podIds)
 
-			if !reflect.DeepEqual(podIds, []int{0, 1, 2, 3, 4, 5}) {
+			if !reflect.DeepEqual(podIds, []int{0, 1, 3, 4, 5, 6}) {
 				t.Error("Error when incrementing the counter of the jobs")
 			}
 		})

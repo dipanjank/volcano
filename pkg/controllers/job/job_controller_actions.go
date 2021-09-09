@@ -31,6 +31,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 
+	uberatomic "go.uber.org/atomic"
+
 	batch "volcano.sh/apis/pkg/apis/batch/v1alpha1"
 	"volcano.sh/apis/pkg/apis/helpers"
 	scheduling "volcano.sh/apis/pkg/apis/scheduling/v1beta1"
@@ -272,7 +274,8 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 		*container = append(*container, err)
 	}
 
-	count := job.Status.Counter
+	var counter uberatomic.Uint32
+	counter.Store(uint32(job.Status.Counter))
 
 	counterLabel, counterLabelFound := job.Annotations["volcano.sh/counter-label"]
 
@@ -324,9 +327,8 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 			if counterLabelFound {
 				_, exists := pod.Labels[counterLabel]
 				if !exists {
-					currentCount := atomic.LoadInt32(&count)
+					currentCount := counter.Inc()
 					pod.Labels[counterLabel] = strconv.Itoa(int(currentCount))
-					atomic.AddInt32(&count, 1)
 				}
 			}
 
@@ -397,7 +399,7 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 		TaskStatusCount:     taskStatusCount,
 		ControlledResources: job.Status.ControlledResources,
 		RetryCount:          job.Status.RetryCount,
-		Counter:             atomic.LoadInt32(&count),
+		Counter:             int32(counter.Load()),
 	}
 
 	if updateStatus != nil {
