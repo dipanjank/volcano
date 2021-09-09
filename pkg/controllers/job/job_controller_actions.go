@@ -276,6 +276,7 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 
 	var counter uberatomic.Uint32
 	counter.Store(uint32(job.Status.Counter))
+	klog.V(3).Infof("Job <%s> value of the counter is %d\n", job.Name, counter.Load())
 
 	counterLabel, counterLabelFound := job.Annotations["volcano.sh/counter-label"]
 
@@ -328,6 +329,8 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 				_, exists := pod.Labels[counterLabel]
 				if !exists {
 					currentCount := counter.Inc()
+					klog.V(3).Infof("Setting label <%s> of Pod <%s> to <%d>\n", counterLabel, pod.Name,
+						currentCount)
 					pod.Labels[counterLabel] = strconv.Itoa(int(currentCount))
 				}
 			}
@@ -401,6 +404,8 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 		RetryCount:          job.Status.RetryCount,
 		Counter:             int32(counter.Load()),
 	}
+
+	klog.V(3).Infof("Updating counter for Job <%s> to <%d>\n", job.Name, job.Status.Counter)
 
 	if updateStatus != nil {
 		if updateStatus(&job.Status) {
