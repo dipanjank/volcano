@@ -279,6 +279,11 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 	klog.V(3).Infof("Job <%s> value of the counter is %d\n", job.Name, counter.Load())
 
 	counterLabel, counterLabelFound := job.Annotations["volcano.sh/counter-label"]
+	if counterLabelFound {
+		klog.V(3).Infof("Job <%s> using counter label <%s>\n", job.Name, counterLabel)
+	} else {
+		klog.V(3).Infof("Job <%s> not using counter label\n", job.Name)
+	}
 
 	for _, ts := range job.Spec.Tasks {
 		ts.Template.Name = ts.Name
@@ -326,12 +331,16 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 			defer waitCreationGroup.Done()
 
 			if counterLabelFound {
-				_, exists := pod.Labels[counterLabel]
+				existingCounter, exists := pod.Labels[counterLabel]
+
 				if !exists {
 					currentCount := counter.Inc()
-					klog.V(3).Infof("Setting label <%s> of Pod <%s> to <%d>\n", counterLabel, pod.Name,
-						currentCount)
+					klog.V(3).Infof("Setting counter label <%s> of Pod <%s> to <%d>\n", counterLabel,
+						pod.Name, currentCount)
 					pod.Labels[counterLabel] = strconv.Itoa(int(currentCount))
+				} else {
+					klog.V(3).Infof("pod <%s> has existing counter label <%s> with value <%s>\n",
+						pod.Name, counterLabel, existingCounter)
 				}
 			}
 
