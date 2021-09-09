@@ -337,7 +337,7 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 			if counterLabelFound {
 				existingCounter, exists := pod.Labels[counterLabel]
 
-				if !exists {
+				if exists {
 					currentCount := counter.Inc()
 					klog.V(3).Infof("Setting counter label <%s> of Pod <%s> to <%d>\n", counterLabel,
 						pod.Name, currentCount)
