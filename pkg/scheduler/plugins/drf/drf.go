@@ -166,12 +166,15 @@ func (drf *drfPlugin) NamespaceOrderEnabled(ssn *framework.Session) bool {
 	return false
 }
 
-func (drf *drfPlugin) compareQueues(root *hierarchicalNode, lqueue *api.QueueInfo, rqueue *api.QueueInfo) float64 {
+func (drf *drfPlugin) compareQueues(root *hierarchicalNode, lqueue *api.QueueInfo, rqueue *api.QueueInfo, reclaimer *api.TaskInfo, preemptee *api.TaskInfo) float64 {
 	lnode := root
 	lpaths := strings.Split(lqueue.Hierarchy, "/")
 	rnode := root
 	rpaths := strings.Split(rqueue.Hierarchy, "/")
 	depth := 0
+
+	klog.V(4).Infof("Compare queues lnode<%v> rnode<%v> reclaimer<%v> preemptee<%v>", lnode, rnode, reclaimer, preemptee)
+
 	if len(lpaths) < len(rpaths) {
 		depth = len(lpaths)
 	} else {
@@ -334,7 +337,7 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 		queueOrderFn := func(l interface{}, r interface{}) int {
 			lv := l.(*api.QueueInfo)
 			rv := r.(*api.QueueInfo)
-			ret := drf.compareQueues(drf.hierarchicalRoot, lv, rv)
+			ret := drf.compareQueues(drf.hierarchicalRoot, lv, rv, nil, nil)
 			if ret < 0 {
 				return -1
 			}
@@ -381,7 +384,7 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 				drf.UpdateHierarchicalShare(root, totalAllocated, rjob, rattr, rqueue.Hierarchy, rqueue.Weights)
 
 				// compare hdrf of queues
-				ret := drf.compareQueues(root, lqueue, rqueue)
+				ret := drf.compareQueues(root, lqueue, rqueue, reclaimer, preemptee)
 
 				// resume hdrf of reclaimee job
 				totalAllocated.Add(preemptee.Resreq)
