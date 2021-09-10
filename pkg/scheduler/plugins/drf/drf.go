@@ -366,10 +366,7 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 
 			for _, preemptee := range reclaimees {
 				rjob := ssn.Jobs[preemptee.Job]
-				if !rjob.Reclaimable {
-					klog.V(4).Infof("DRF: Job %s/%s is not reclaimable, skip", rjob.Namespace, rjob.Name)
-					continue
-				}
+
 				rqueue := ssn.Queues[rjob.Queue]
 
 				// update hdrf of reclaimee job
@@ -391,6 +388,11 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 				rattr.allocated.Add(preemptee.Resreq)
 				drf.updateShare(rattr)
 				drf.UpdateHierarchicalShare(root, totalAllocated, rjob, rattr, rqueue.Hierarchy, rqueue.Weights)
+
+				if !rjob.Reclaimable {
+					klog.V(4).Infof("DRF: Job %s/%s is not reclaimable, skip", rjob.Namespace, rjob.Name)
+					continue
+				}
 
 				if ret < 0 {
 					victims = append(victims, preemptee)
