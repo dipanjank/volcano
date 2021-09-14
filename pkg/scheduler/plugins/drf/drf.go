@@ -74,6 +74,11 @@ func (node *hierarchicalNode) Clone(parent *hierarchicalNode) *hierarchicalNode 
 	return newNode
 }
 
+func (n *hierarchicalNode) String() string {
+	return fmt.Sprintf("Hierarhcy <%s>, weight <%f>, saturated <%t>, request <%v>, drfAttr <%v>",
+		n.hierarchy, n.weight, n.saturated, n.request, n.attr)
+}
+
 // resourceSaturated returns true if any resource of the job is saturated or the job demands fully allocated resource
 func resourceSaturated(allocated *api.Resource,
 	jobRequest *api.Resource, demandingResources map[v1.ResourceName]bool) bool {
@@ -173,7 +178,7 @@ func (drf *drfPlugin) compareQueues(root *hierarchicalNode, lqueue *api.QueueInf
 	rpaths := strings.Split(rqueue.Hierarchy, "/")
 	depth := 0
 
-	klog.V(4).Infof("Compare queues lnode<%v> rnode<%v> reclaimer<%v> preemptee<%v>", lnode, rnode, reclaimer, preemptee)
+	klog.V(4).Infof("Compare queues lnode <%v> rnode <%v> reclaimer <%v> preemptee <%v>", lnode, rnode, reclaimer, preemptee)
 
 	if len(lpaths) < len(rpaths) {
 		depth = len(lpaths)
@@ -385,6 +390,8 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 
 				// compare hdrf of queues
 				ret := drf.compareQueues(root, lqueue, rqueue, reclaimer, preemptee)
+				klog.V(4).Infof("DRF: CompareQueues returned <%t> for lqueue <%s>, rqueue<%s>",
+					ret, lqueue.Name, rqueue.Name)
 
 				// resume hdrf of reclaimee job
 				totalAllocated.Add(preemptee.Resreq)
