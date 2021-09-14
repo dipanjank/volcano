@@ -618,7 +618,7 @@ func (drf *drfPlugin) updateHierarchicalShare(node *hierarchicalNode,
 		node.attr.allocated = api.EmptyResource()
 		saturated := true
 		for _, child := range node.children {
-			klog.V(4).Infof("Child <%s>, Saturated <%t>", child.hierarchy, saturated)
+			klog.V(4).Infof("Child <%s>, Saturated <%t>", child.hierarchy, child.saturated)
 			if !child.saturated {
 				saturated = false
 			}
