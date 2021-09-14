@@ -253,7 +253,8 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 		if hierarchyEnabled {
 			queue := ssn.Queues[job.Queue]
 			drf.totalAllocated.Add(attr.allocated)
-			drf.UpdateHierarchicalShare(drf.hierarchicalRoot, drf.totalAllocated, job, attr, queue.Hierarchy, queue.Weights)
+			drf.UpdateHierarchicalShare("OnSessionOpen",
+				drf.hierarchicalRoot, drf.totalAllocated, job, attr, queue.Hierarchy, queue.Weights)
 		}
 	}
 
@@ -373,7 +374,7 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 			lattr.allocated.Add(reclaimer.Resreq)
 			totalAllocated.Add(reclaimer.Resreq)
 			drf.updateShare(lattr)
-			drf.UpdateHierarchicalShare(root, totalAllocated, ljob, lattr, lqueue.Hierarchy, lqueue.Weights)
+			drf.UpdateHierarchicalShare("ReclaimFn::Job", root, totalAllocated, ljob, lattr, lqueue.Hierarchy, lqueue.Weights)
 
 			for _, preemptee := range reclaimees {
 				rjob := ssn.Jobs[preemptee.Job]
@@ -389,7 +390,7 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 				}
 				rattr.allocated.Sub(preemptee.Resreq)
 				drf.updateShare(rattr)
-				drf.UpdateHierarchicalShare(root, totalAllocated, rjob, rattr, rqueue.Hierarchy, rqueue.Weights)
+				drf.UpdateHierarchicalShare("ReclaimFn::WhatIf", root, totalAllocated, rjob, rattr, rqueue.Hierarchy, rqueue.Weights)
 
 				// compare hdrf of queues
 				ret := drf.compareQueues(root, lqueue, rqueue, reclaimer, preemptee)
@@ -400,7 +401,8 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 				totalAllocated.Add(preemptee.Resreq)
 				rattr.allocated.Add(preemptee.Resreq)
 				drf.updateShare(rattr)
-				drf.UpdateHierarchicalShare(root, totalAllocated, rjob, rattr, rqueue.Hierarchy, rqueue.Weights)
+				drf.UpdateHierarchicalShare("ReclaimFn::AddBackPreemptee", root, totalAllocated, rjob, rattr,
+					rqueue.Hierarchy, rqueue.Weights)
 
 				if !rjob.Reclaimable {
 					klog.V(4).Infof("DRF: Job %s/%s is not reclaimable, skip", rjob.Namespace, rjob.Name)
@@ -503,7 +505,7 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 				queue := ssn.Queues[job.Queue]
 
 				drf.totalAllocated.Add(event.Task.Resreq)
-				drf.UpdateHierarchicalShare(drf.hierarchicalRoot, drf.totalAllocated, job, attr, queue.Hierarchy, queue.Weights)
+				drf.UpdateHierarchicalShare("AllocateEvent", drf.hierarchicalRoot, drf.totalAllocated, job, attr, queue.Hierarchy, queue.Weights)
 			}
 
 			klog.V(4).Infof("DRF AllocateFunc: task <%v/%v>, resreq <%v>,  share <%v>, namespace share <%v>",
@@ -528,7 +530,7 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 			if hierarchyEnabled {
 				queue := ssn.Queues[job.Queue]
 				drf.totalAllocated.Sub(event.Task.Resreq)
-				drf.UpdateHierarchicalShare(drf.hierarchicalRoot, drf.totalAllocated, job, attr, queue.Hierarchy, queue.Weights)
+				drf.UpdateHierarchicalShare("DeallocateEvent", drf.hierarchicalRoot, drf.totalAllocated, job, attr, queue.Hierarchy, queue.Weights)
 			}
 
 			klog.V(4).Infof("DRF EvictFunc: task <%v/%v>, resreq <%v>,  share <%v>, namespace share <%v>",
@@ -592,10 +594,12 @@ func (drf *drfPlugin) buildHierarchy(root *hierarchicalNode, job *api.JobInfo, a
 func (drf *drfPlugin) updateHierarchicalShare(node *hierarchicalNode,
 	demandingResources map[v1.ResourceName]bool) {
 	if node.children == nil {
+		klog.V(4).Infof("node <%s>, request <%s>", node.hierarchy, node.request)
 		node.saturated = resourceSaturated(node.attr.allocated,
 			node.request, demandingResources)
 		klog.V(4).Infof("Update hierarchical node <%s>, requested <%v>, share <%f>, dominant <%s>, allocated <%v>, demanding <%v>, saturated: <%t>",
-			node.hierarchy, node.request, node.attr.share, node.attr.dominantResource, node.attr.allocated,
+			node.hierarchy, node.request, node.attr.share,
+			node.attr.dominantResource, node.attr.allocated,
 			demandingResources, node.saturated)
 	} else {
 		var mdr float64 = 1
@@ -614,6 +618,7 @@ func (drf *drfPlugin) updateHierarchicalShare(node *hierarchicalNode,
 		node.attr.allocated = api.EmptyResource()
 		saturated := true
 		for _, child := range node.children {
+			klog.V(4).Infof("Child <%s>, Saturated <%t>", child.hierarchy, saturated)
 			if !child.saturated {
 				saturated = false
 			}
@@ -640,7 +645,9 @@ func (drf *drfPlugin) updateHierarchicalShare(node *hierarchicalNode,
 
 }
 
-func (drf *drfPlugin) UpdateHierarchicalShare(root *hierarchicalNode, totalAllocated *api.Resource, job *api.JobInfo, attr *drfAttr, hierarchy, hierarchicalWeights string) {
+func (drf *drfPlugin) UpdateHierarchicalShare(caller string, root *hierarchicalNode, totalAllocated *api.Resource, job *api.JobInfo, attr *drfAttr, hierarchy, hierarchicalWeights string) {
+	klog.V(4).Infof("updateHierarchicalShare called from: <%s>", caller)
+
 	// filter out demanding resources
 	demandingResources := map[v1.ResourceName]bool{}
 	for _, rn := range drf.totalResource.ResourceNames() {
