@@ -594,8 +594,8 @@ func (drf *drfPlugin) updateHierarchicalShare(node *hierarchicalNode,
 	if node.children == nil {
 		node.saturated = resourceSaturated(node.attr.allocated,
 			node.request, demandingResources)
-		klog.V(4).Infof("Update hierarchical node %s, share %f, dominant %s, allocated %v, demanding %v, saturated: %t",
-			node.hierarchy, node.attr.share, node.attr.dominantResource, node.attr.allocated,
+		klog.V(4).Infof("Update hierarchical node <%s>, requested <%v>, share <%f>, dominant <%s>, allocated <%v>, demanding <%v>, saturated: <%t>",
+			node.hierarchy, node.request, node.attr.share, node.attr.dominantResource, node.attr.allocated,
 			demandingResources, node.saturated)
 	} else {
 		var mdr float64 = 1
@@ -633,8 +633,8 @@ func (drf *drfPlugin) updateHierarchicalShare(node *hierarchicalNode,
 		node.attr.dominantResource, node.attr.share = drf.calculateShare(
 			node.attr.allocated, drf.totalResource)
 		node.saturated = saturated
-		klog.V(4).Infof("Update hierarchical node %s, share %f, dominant resource %s, allocated %v, demanding %v, saturated: %t",
-			node.hierarchy, node.attr.share, node.attr.dominantResource,
+		klog.V(4).Infof("Update hierarchical node <%s>, requested <%v>, share <%f>, dominant resource <%s>, allocated <%v>, demanding <%v>, saturated: <%t>",
+			node.hierarchy, node.request, node.attr.share, node.attr.dominantResource,
 			node.attr.allocated, demandingResources, node.saturated)
 	}
 
