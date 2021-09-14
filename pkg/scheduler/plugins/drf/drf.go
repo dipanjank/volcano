@@ -178,7 +178,10 @@ func (drf *drfPlugin) compareQueues(root *hierarchicalNode, lqueue *api.QueueInf
 	rpaths := strings.Split(rqueue.Hierarchy, "/")
 	depth := 0
 
-	klog.V(4).Infof("Compare queues lnode <%v> rnode <%v> reclaimer <%v> preemptee <%v>", lnode, rnode, reclaimer, preemptee)
+	if reclaimer != nil && preemptee != nil {
+		klog.V(4).Infof("Compare queues lnode <%v> rnode <%v> reclaimer <%v> preemptee <%v>", lnode, rnode,
+			reclaimer.Name, preemptee.Name)
+	}
 
 	if len(lpaths) < len(rpaths) {
 		depth = len(lpaths)
@@ -591,8 +594,9 @@ func (drf *drfPlugin) updateHierarchicalShare(node *hierarchicalNode,
 	if node.children == nil {
 		node.saturated = resourceSaturated(node.attr.allocated,
 			node.request, demandingResources)
-		klog.V(4).Infof("Update hierarchical node %s, share %f, dominant %s, resource %v, saturated: %t",
-			node.hierarchy, node.attr.share, node.attr.dominantResource, node.attr.allocated, node.saturated)
+		klog.V(4).Infof("Update hierarchical node %s, share %f, dominant %s, allocated %v, demanding %v, saturated: %t",
+			node.hierarchy, node.attr.share, node.attr.dominantResource, node.attr.allocated,
+			demandingResources, node.saturated)
 	} else {
 		var mdr float64 = 1
 		// get minimun dominant resource share
@@ -629,8 +633,9 @@ func (drf *drfPlugin) updateHierarchicalShare(node *hierarchicalNode,
 		node.attr.dominantResource, node.attr.share = drf.calculateShare(
 			node.attr.allocated, drf.totalResource)
 		node.saturated = saturated
-		klog.V(4).Infof("Update hierarchical node %s, share %f, dominant resource %s, resource %v, saturated: %t",
-			node.hierarchy, node.attr.share, node.attr.dominantResource, node.attr.allocated, node.saturated)
+		klog.V(4).Infof("Update hierarchical node %s, share %f, dominant resource %s, allocated %v, demanding %v, saturated: %t",
+			node.hierarchy, node.attr.share, node.attr.dominantResource,
+			node.attr.allocated, demandingResources, node.saturated)
 	}
 
 }
