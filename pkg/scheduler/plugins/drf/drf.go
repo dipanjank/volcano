@@ -390,7 +390,7 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 
 				// compare hdrf of queues
 				ret := drf.compareQueues(root, lqueue, rqueue, reclaimer, preemptee)
-				klog.V(4).Infof("DRF: CompareQueues returned <%t> for lqueue <%s>, rqueue<%s>",
+				klog.V(4).Infof("DRF: CompareQueues returned <%f> for lqueue <%s>, rqueue<%s>",
 					ret, lqueue.Name, rqueue.Name)
 
 				// resume hdrf of reclaimee job
