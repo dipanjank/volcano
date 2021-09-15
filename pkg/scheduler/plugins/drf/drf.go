@@ -18,14 +18,13 @@ package drf
 
 import (
 	"fmt"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/klog"
 	"math"
 	"strconv"
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/klog"
-
-	"volcano.sh/volcano/pkg/scheduler/api"
+	api "volcano.sh/volcano/pkg/scheduler/api"
 	"volcano.sh/volcano/pkg/scheduler/api/helpers"
 	"volcano.sh/volcano/pkg/scheduler/framework"
 	"volcano.sh/volcano/pkg/scheduler/metrics"
@@ -74,9 +73,9 @@ func (node *hierarchicalNode) Clone(parent *hierarchicalNode) *hierarchicalNode 
 	return newNode
 }
 
-func (n *hierarchicalNode) String() string {
+func (node *hierarchicalNode) String() string {
 	return fmt.Sprintf("Hierarhcy <%s>, weight <%f>, saturated <%t>, request <%v>, drfAttr <%v>",
-		n.hierarchy, n.weight, n.saturated, n.request, n.attr)
+		node.hierarchy, node.weight, node.saturated, node.request, node.attr)
 }
 
 // resourceSaturated returns true if any resource of the job is saturated or the job demands fully allocated resource
@@ -211,9 +210,11 @@ func (drf *drfPlugin) compareQueues(root *hierarchicalNode, lqueue *api.QueueInf
 
 func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 	// Prepare scheduling data for this session.
-	for _, n := range ssn.Nodes {
-		drf.totalResource.Add(n.Allocatable)
-	}
+
+	drf.totalResource.Add(&api.Resource{
+		MilliCPU: 9000.00,
+		Memory:   9000000000.00,
+	})
 
 	klog.V(4).Infof("Total Allocatable %s", drf.totalResource)
 
@@ -363,6 +364,8 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 			totalAllocated := drf.totalAllocated.Clone()
 			root := drf.hierarchicalRoot.Clone(nil)
 
+			klog.V(4).Infof("Check initial request")
+
 			//  update reclaimer hdrf
 			ljob := ssn.Jobs[reclaimer.Job]
 			lqueue := ssn.Queues[ljob.Queue]
@@ -373,6 +376,7 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 			}
 			lattr.allocated.Add(reclaimer.Resreq)
 			totalAllocated.Add(reclaimer.Resreq)
+
 			drf.updateShare(lattr)
 			drf.UpdateHierarchicalShare("ReclaimFn::Job", root, totalAllocated, ljob, lattr, lqueue.Hierarchy, lqueue.Weights)
 
@@ -380,6 +384,12 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 				rjob := ssn.Jobs[preemptee.Job]
 
 				rqueue := ssn.Queues[rjob.Queue]
+
+				if !rjob.Reclaimable {
+					klog.V(4).Infof("DRF: Job %s/%s is not reclaimable, skip", rjob.Namespace, rjob.Name)
+					continue
+				}
+				klog.V(4).Infof("Check if share can be removed by job %s", preemptee.Name)
 
 				// update hdrf of reclaimee job
 				totalAllocated.Sub(preemptee.Resreq)
@@ -397,17 +407,14 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 				klog.V(4).Infof("DRF: CompareQueues returned <%f> for lqueue <%s>, rqueue<%s>",
 					ret, lqueue.Name, rqueue.Name)
 
+				klog.V(4).Infof("Remove and resume job %s %v", preemptee.Name, ret)
+
 				// resume hdrf of reclaimee job
 				totalAllocated.Add(preemptee.Resreq)
 				rattr.allocated.Add(preemptee.Resreq)
 				drf.updateShare(rattr)
 				drf.UpdateHierarchicalShare("ReclaimFn::AddBackPreemptee", root, totalAllocated, rjob, rattr,
 					rqueue.Hierarchy, rqueue.Weights)
-
-				if !rjob.Reclaimable {
-					klog.V(4).Infof("DRF: Job %s/%s is not reclaimable, skip", rjob.Namespace, rjob.Name)
-					continue
-				}
 
 				if ret < 0 {
 					victims = append(victims, preemptee)

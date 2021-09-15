@@ -53,43 +53,58 @@ func TestReclaimWithHDRF(t *testing.T) {
 		expected  int
 	}{
 		{
-			name: "Two Queue with one Queue overusing resource, should reclaim",
+			name: "Spark bug test, should reclaim",
 			podGroups: []*schedulingv1.PodGroup{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pg1",
+						Name:      "pg1-drv",
 						Namespace: "c1",
+						Annotations: map[string]string{
+							api.PodReclaimable: "false",
+						},
 					},
 					Spec: schedulingv1.PodGroupSpec{
-						Queue: "test1",
+						Queue: "one",
 					},
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pg2",
+						Name:      "pg1-exec",
 						Namespace: "c1",
 					},
 					Spec: schedulingv1.PodGroupSpec{
-						Queue: "test2",
+						Queue: "one",
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "pg2-drv",
+						Namespace: "c1",
+						Annotations: map[string]string{
+							api.PodReclaimable: "false",
+						},
+					},
+					Spec: schedulingv1.PodGroupSpec{
+						Queue: "two",
 					},
 				},
 			},
 			pods: []*v1.Pod{
-				util.BuildPod("c1", "preemptee1", "n1", v1.PodRunning, util.BuildResourceList("1", "1G"), "pg1", make(map[string]string), make(map[string]string)),
-				util.BuildPod("c1", "preemptee2", "n1", v1.PodRunning, util.BuildResourceList("1", "1G"), "pg1", make(map[string]string), make(map[string]string)),
-				util.BuildPod("c1", "preemptee3", "n1", v1.PodRunning, util.BuildResourceList("1", "1G"), "pg1", make(map[string]string), make(map[string]string)),
-				util.BuildPod("c1", "preemptor1", "", v1.PodPending, util.BuildResourceList("1", "1G"), "pg2", make(map[string]string), make(map[string]string)),
+				util.BuildPod("c1", "pg1-drv", "n1", v1.PodRunning, util.BuildResourceList("1", "1G"), "pg1-drv", make(map[string]string), make(map[string]string)),
+				util.BuildPod("c1", "pg11-exec", "n1", v1.PodRunning, util.BuildResourceList("1", "1G"), "pg1-exec", make(map[string]string), make(map[string]string)),
+				util.BuildPod("c1", "pg12-exec", "n1", v1.PodRunning, util.BuildResourceList("1", "1G"), "pg1-exec", make(map[string]string), make(map[string]string)),
+				util.BuildPod("c1", "pg2-drv", "", v1.PodPending, util.BuildResourceList("1", "1G"), "pg2-drv", make(map[string]string), make(map[string]string)),
 			},
 			nodes: []*v1.Node{
-				util.BuildNode("n1", util.BuildResourceList("3", "3Gi"), make(map[string]string)),
+				util.BuildNode("n1", util.BuildResourceList("9", "9Gi"), make(map[string]string)),
 			},
 			queues: []*schedulingv1.Queue{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "test1",
+						Name: "one",
 						Annotations: map[string]string{
-							"volcano.sh/hierarchy":         "root/test1",
-							"volcano.sh/hierarchy-weights": "100/25",
+							"volcano.sh/hierarchy":         "root/one",
+							"volcano.sh/hierarchy-weights": "1/1",
 						},
 					},
 					Spec: schedulingv1.QueueSpec{
@@ -98,10 +113,10 @@ func TestReclaimWithHDRF(t *testing.T) {
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "test2",
+						Name: "two",
 						Annotations: map[string]string{
-							"volcano.sh/hierarchy":         "root/test2",
-							"volcano.sh/hierarchy-weights": "100/25",
+							"volcano.sh/hierarchy":         "root/two",
+							"volcano.sh/hierarchy-weights": "1/1",
 						},
 					},
 					Spec: schedulingv1.QueueSpec{
@@ -111,68 +126,127 @@ func TestReclaimWithHDRF(t *testing.T) {
 			},
 			expected: 1,
 		},
-		{
-			name: "Two Queue with one Queue overusing resource, but volcano.sh/reclaimable Annotation set to false. Should not reclaim",
-			podGroups: []*schedulingv1.PodGroup{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pg1",
-						Namespace: "c1",
-						Annotations: map[string]string{
-							api.PodReclaimable: "false",
-						},
-					},
-					Spec: schedulingv1.PodGroupSpec{
-						Queue: "test1",
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pg2",
-						Namespace: "c1",
-					},
-					Spec: schedulingv1.PodGroupSpec{
-						Queue: "test2",
-					},
-				},
-			},
-			pods: []*v1.Pod{
-				util.BuildPod("c1", "preemptee1", "n1", v1.PodRunning, util.BuildResourceList("1", "1G"), "pg1", make(map[string]string), make(map[string]string)),
-				util.BuildPod("c1", "preemptee2", "n1", v1.PodRunning, util.BuildResourceList("1", "1G"), "pg1", make(map[string]string), make(map[string]string)),
-				util.BuildPod("c1", "preemptee3", "n1", v1.PodRunning, util.BuildResourceList("1", "1G"), "pg1", make(map[string]string), make(map[string]string)),
-				util.BuildPod("c1", "preemptor1", "", v1.PodPending, util.BuildResourceList("1", "1G"), "pg2", make(map[string]string), make(map[string]string)),
-			},
-			nodes: []*v1.Node{
-				util.BuildNode("n1", util.BuildResourceList("3", "3Gi"), make(map[string]string)),
-			},
-			queues: []*schedulingv1.Queue{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test1",
-						Annotations: map[string]string{
-							"volcano.sh/hierarchy":         "root/test1",
-							"volcano.sh/hierarchy-weights": "100/25",
-						},
-					},
-					Spec: schedulingv1.QueueSpec{
-						Weight: 1,
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test2",
-						Annotations: map[string]string{
-							"volcano.sh/hierarchy":         "root/test2",
-							"volcano.sh/hierarchy-weights": "100/25",
-						},
-					},
-					Spec: schedulingv1.QueueSpec{
-						Weight: 1,
-					},
-				},
-			},
-			expected: 0,
-		},
+		//{
+		//	name: "Two Queue with one Queue overusing resource, should reclaim",
+		//	podGroups: []*schedulingv1.PodGroup{
+		//		{
+		//			ObjectMeta: metav1.ObjectMeta{
+		//				Name:      "pg1",
+		//				Namespace: "c1",
+		//			},
+		//			Spec: schedulingv1.PodGroupSpec{
+		//				Queue: "test1",
+		//			},
+		//		},
+		//		{
+		//			ObjectMeta: metav1.ObjectMeta{
+		//				Name:      "pg2",
+		//				Namespace: "c1",
+		//			},
+		//			Spec: schedulingv1.PodGroupSpec{
+		//				Queue: "test2",
+		//			},
+		//		},
+		//	},
+		//	pods: []*v1.Pod{
+		//		util.BuildPod("c1", "preemptee1", "n1", v1.PodRunning, util.BuildResourceList("1", "1G"), "pg1", make(map[string]string), make(map[string]string)),
+		//		util.BuildPod("c1", "preemptee2", "n1", v1.PodRunning, util.BuildResourceList("1", "1G"), "pg1", make(map[string]string), make(map[string]string)),
+		//		util.BuildPod("c1", "preemptee3", "n1", v1.PodRunning, util.BuildResourceList("1", "1G"), "pg1", make(map[string]string), make(map[string]string)),
+		//		util.BuildPod("c1", "preemptor1", "", v1.PodPending, util.BuildResourceList("1", "1G"), "pg2", make(map[string]string), make(map[string]string)),
+		//	},
+		//	nodes: []*v1.Node{
+		//		util.BuildNode("n1", util.BuildResourceList("3", "3Gi"), make(map[string]string)),
+		//	},
+		//	queues: []*schedulingv1.Queue{
+		//		{
+		//			ObjectMeta: metav1.ObjectMeta{
+		//				Name: "test1",
+		//				Annotations: map[string]string{
+		//					"volcano.sh/hierarchy":         "root/test1",
+		//					"volcano.sh/hierarchy-weights": "100/25",
+		//				},
+		//			},
+		//			Spec: schedulingv1.QueueSpec{
+		//				Weight: 1,
+		//			},
+		//		},
+		//		{
+		//			ObjectMeta: metav1.ObjectMeta{
+		//				Name: "test2",
+		//				Annotations: map[string]string{
+		//					"volcano.sh/hierarchy":         "root/test2",
+		//					"volcano.sh/hierarchy-weights": "100/25",
+		//				},
+		//			},
+		//			Spec: schedulingv1.QueueSpec{
+		//				Weight: 1,
+		//			},
+		//		},
+		//	},
+		//	expected: 1,
+		//},
+		//{
+		//	name: "Two Queue with one Queue overusing resource, but volcano.sh/reclaimable Annotation set to false. Should not reclaim",
+		//	podGroups: []*schedulingv1.PodGroup{
+		//		{
+		//			ObjectMeta: metav1.ObjectMeta{
+		//				Name:      "pg1",
+		//				Namespace: "c1",
+		//				Annotations: map[string]string{
+		//					api.PodReclaimable: "false",
+		//				},
+		//			},
+		//			Spec: schedulingv1.PodGroupSpec{
+		//				Queue: "test1",
+		//			},
+		//		},
+		//		{
+		//			ObjectMeta: metav1.ObjectMeta{
+		//				Name:      "pg2",
+		//				Namespace: "c1",
+		//			},
+		//			Spec: schedulingv1.PodGroupSpec{
+		//				Queue: "test2",
+		//			},
+		//		},
+		//	},
+		//	pods: []*v1.Pod{
+		//		util.BuildPod("c1", "preemptee1", "n1", v1.PodRunning, util.BuildResourceList("1", "1G"), "pg1", make(map[string]string), make(map[string]string)),
+		//		util.BuildPod("c1", "preemptee2", "n1", v1.PodRunning, util.BuildResourceList("1", "1G"), "pg1", make(map[string]string), make(map[string]string)),
+		//		util.BuildPod("c1", "preemptee3", "n1", v1.PodRunning, util.BuildResourceList("1", "1G"), "pg1", make(map[string]string), make(map[string]string)),
+		//		util.BuildPod("c1", "preemptor1", "", v1.PodPending, util.BuildResourceList("1", "1G"), "pg2", make(map[string]string), make(map[string]string)),
+		//	},
+		//	nodes: []*v1.Node{
+		//		util.BuildNode("n1", util.BuildResourceList("3", "3Gi"), make(map[string]string)),
+		//	},
+		//	queues: []*schedulingv1.Queue{
+		//		{
+		//			ObjectMeta: metav1.ObjectMeta{
+		//				Name: "test1",
+		//				Annotations: map[string]string{
+		//					"volcano.sh/hierarchy":         "root/test1",
+		//					"volcano.sh/hierarchy-weights": "100/25",
+		//				},
+		//			},
+		//			Spec: schedulingv1.QueueSpec{
+		//				Weight: 1,
+		//			},
+		//		},
+		//		{
+		//			ObjectMeta: metav1.ObjectMeta{
+		//				Name: "test2",
+		//				Annotations: map[string]string{
+		//					"volcano.sh/hierarchy":         "root/test2",
+		//					"volcano.sh/hierarchy-weights": "100/25",
+		//				},
+		//			},
+		//			Spec: schedulingv1.QueueSpec{
+		//				Weight: 1,
+		//			},
+		//		},
+		//	},
+		//	expected: 0,
+		//},
 	}
 
 	reclaim := New()
