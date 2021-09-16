@@ -51,11 +51,9 @@ func EmptyResource() *Resource {
 	return &Resource{}
 }
 
-// ScaleResource Scale a Resource by multiplier and return a new Resource
-func (r *Resource) ScaleResource(factors map[string]string) *Resource {
+// ScaleResource Scale a Resource by multiplier. Makes changes in-place.
+func (r *Resource) ScaleResource(factors map[string]string) {
 	// Make a copy of existing resource
-	scaledResource := r.Clone()
-
 	// Iterate over the factors map and scale each resource by the appropriate factor
 	for resourceName, factor := range factors {
 		f, err := strconv.ParseFloat(factor, 64)
@@ -63,18 +61,17 @@ func (r *Resource) ScaleResource(factors map[string]string) *Resource {
 			continue
 		}
 		if strings.EqualFold("millicpu", resourceName) {
-			scaledResource.MilliCPU *= f
-			scaledResource.ScalarResources[v1.ResourceCPU] *= f
+			r.MilliCPU *= f
+			r.ScalarResources[v1.ResourceCPU] *= f
 		}
 		if strings.EqualFold("memory", resourceName) {
-			scaledResource.Memory *= f
-			scaledResource.ScalarResources[v1.ResourceMemory] *= f
+			r.Memory *= f
+			r.ScalarResources[v1.ResourceMemory] *= f
 		}
 		if strings.EqualFold("maxtasknum", resourceName) {
-			scaledResource.MaxTaskNum = int(float64(scaledResource.MaxTaskNum) * f)
+			r.MaxTaskNum = int(float64(r.MaxTaskNum) * f)
 		}
 	}
-	return scaledResource
 }
 
 // Clone is used to clone a resource type

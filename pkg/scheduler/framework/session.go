@@ -448,10 +448,11 @@ func (ssn Session) String() string {
 // ScaleAllocatables scale the Allocatable Resources from the "ScaleAllocatable" configuration element
 func (ssn *Session) ScaleAllocatables(configurations []conf.Configuration) {
 	for _, adjustConf := range configurations {
+		klog.V(4).Infof("Checking config item <%s>", adjustConf.Name)
 		if strings.EqualFold(adjustConf.Name, "ScaleAllocatable") {
 			factors := adjustConf.Arguments
 			for _, nodeInfo := range ssn.Nodes {
-				nodeInfo.Allocatable = nodeInfo.Allocatable.ScaleResource(factors)
+				nodeInfo.Allocatable.ScaleResource(factors)
 			}
 		}
 	}
