@@ -31,6 +31,7 @@ func OpenSession(cache cache.Cache, tiers []conf.Tier, configurations []conf.Con
 	ssn := openSession(cache)
 	ssn.Tiers = tiers
 	ssn.Configurations = configurations
+	ssn.ScaleAllocatables(configurations)
 
 	for _, tier := range tiers {
 		for _, plugin := range tier.Plugins {

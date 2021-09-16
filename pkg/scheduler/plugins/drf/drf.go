@@ -211,10 +211,9 @@ func (drf *drfPlugin) compareQueues(root *hierarchicalNode, lqueue *api.QueueInf
 func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 	// Prepare scheduling data for this session.
 
-	drf.totalResource.Add(&api.Resource{
-		MilliCPU: 9000.00,
-		Memory:   9000000000.00,
-	})
+	for _, n := range ssn.Nodes {
+		drf.totalResource.Add(n.Allocatable)
+	}
 
 	klog.V(4).Infof("Total Allocatable %s", drf.totalResource)
 
