@@ -31,6 +31,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 
+	uberatomic "go.uber.org/atomic"
+
 	batch "volcano.sh/apis/pkg/apis/batch/v1alpha1"
 	"volcano.sh/apis/pkg/apis/helpers"
 	scheduling "volcano.sh/apis/pkg/apis/scheduling/v1beta1"
@@ -272,9 +274,16 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 		*container = append(*container, err)
 	}
 
-	count := job.Status.Counter
+	var counter uberatomic.Uint32
+	counter.Store(uint32(job.Status.Counter))
+	klog.V(3).Infof("Job <%s> value of the counter is %d\n", job.Name, counter.Load())
 
 	counterLabel, counterLabelFound := job.Annotations["volcano.sh/counter-label"]
+	if counterLabelFound {
+		klog.V(3).Infof("Job <%s> using counter label <%s>\n", job.Name, counterLabel)
+	} else {
+		klog.V(3).Infof("Job <%s> not using counter label\n", job.Name)
+	}
 
 	for _, ts := range job.Spec.Tasks {
 		ts.Template.Name = ts.Name
@@ -315,18 +324,29 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 		}
 	}
 
+	klog.V(3).Infof("Job <%s>: Going to create %d new pods\n", job.Name, len(podToCreate))
+
 	waitCreationGroup := sync.WaitGroup{}
 	waitCreationGroup.Add(len(podToCreate))
 	for _, pod := range podToCreate {
 		go func(pod *v1.Pod) {
 			defer waitCreationGroup.Done()
+			klog.V(3).Infof("Job <%s>: Going to create new pod <%s> with counterLabelFound <%s>\n",
+				job.Name, pod.Name, strconv.FormatBool(counterLabelFound))
 
 			if counterLabelFound {
-				_, exists := pod.Labels[counterLabel]
-				if !exists {
-					currentCount := atomic.LoadInt32(&count)
+				existingCounter, exists := pod.Labels[counterLabel]
+				intExistingCounter, _ := strconv.Atoi(existingCounter)
+
+				// Somehow the label always exists with value 0, so we only update the value if it is > 0
+				if (!exists) || (intExistingCounter == 0) {
+					currentCount := counter.Inc()
+					klog.V(3).Infof("Setting counter label <%s> of Pod <%s> to <%d>\n", counterLabel,
+						pod.Name, currentCount)
 					pod.Labels[counterLabel] = strconv.Itoa(int(currentCount))
-					atomic.AddInt32(&count, 1)
+				} else {
+					klog.V(3).Infof("pod <%s> has existing counter label <%s> with value <%s>\n",
+						pod.Name, counterLabel, existingCounter)
 				}
 			}
 
@@ -397,8 +417,10 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 		TaskStatusCount:     taskStatusCount,
 		ControlledResources: job.Status.ControlledResources,
 		RetryCount:          job.Status.RetryCount,
-		Counter:             atomic.LoadInt32(&count),
+		Counter:             int32(counter.Load()),
 	}
+
+	klog.V(3).Infof("Updating counter for Job <%s> to <%d>\n", job.Name, job.Status.Counter)
 
 	if updateStatus != nil {
 		if updateStatus(&job.Status) {

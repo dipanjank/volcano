@@ -19,6 +19,8 @@ package api
 import (
 	"fmt"
 	"math"
+	"strconv"
+	"strings"
 
 	v1 "k8s.io/api/core/v1"
 	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
@@ -47,6 +49,29 @@ const (
 // EmptyResource creates a empty resource object and returns
 func EmptyResource() *Resource {
 	return &Resource{}
+}
+
+// ScaleResource Scale a Resource by multiplier. Makes changes in-place.
+func (r *Resource) ScaleResource(factors map[string]string) {
+	// Make a copy of existing resource
+	// Iterate over the factors map and scale each resource by the appropriate factor
+	for resourceName, factor := range factors {
+		f, err := strconv.ParseFloat(factor, 64)
+		if err != nil {
+			continue
+		}
+		if strings.EqualFold("millicpu", resourceName) {
+			r.MilliCPU *= f
+			r.ScalarResources[v1.ResourceCPU] *= f
+		}
+		if strings.EqualFold("memory", resourceName) {
+			r.Memory *= f
+			r.ScalarResources[v1.ResourceMemory] *= f
+		}
+		if strings.EqualFold("maxtasknum", resourceName) {
+			r.MaxTaskNum = int(float64(r.MaxTaskNum) * f)
+		}
+	}
 }
 
 // Clone is used to clone a resource type
