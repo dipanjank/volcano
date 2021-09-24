@@ -224,7 +224,9 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 	}
 
 	// deep copy job to prevent mutate it
+	klog.V(3).Infof("Before deepCopy: Job Name <%s>, counter <%i>", job.Name, job.Status.Counter)
 	job = job.DeepCopy()
+	klog.V(3).Infof("After deepCopy: Job Name <%s>, counter <%i>", job.Name, job.Status.Counter)
 
 	// Find queue that job belongs to, and check if the queue has forwarding metadata
 	queueInfo, err := cc.GetQueueInfo(job.Spec.Queue)
@@ -239,12 +241,14 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 			job.Annotations = make(map[string]string)
 		}
 		job.Annotations[batch.JobForwardingKey] = "true"
+		klog.V(3).Infof("Calling UpdateJob for <%s>", job.Name)
 		job, err = cc.vcClient.BatchV1alpha1().Jobs(job.Namespace).Update(context.TODO(), job, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("failed to update job: %s/%s, error: %s", job.Namespace, job.Name, err.Error())
 			return err
 		}
 	}
+	klog.V(3).Infof("After JobForwarding Block: Job Name <%s>, counter <%i>", job.Name, job.Status.Counter)
 
 	// Skip job initiation if job is already initiated
 	if !isInitiated(job) {
@@ -342,7 +346,7 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 			podName := fmt.Sprintf(jobhelpers.PodNameFmt, job.Name, name, i)
 			if pod, found := pods[podName]; !found {
 
-				newPod := createJobPod(job, tc, ts.TopologyPolicy, i, jobForwarding, make(map[string]string))
+				newPod := createJobPod(job, tc, ts.TopologyPolicy, i, jobForwarding)
 
 				if err := cc.pluginOnPodCreate(job, newPod); err != nil {
 					return err
