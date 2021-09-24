@@ -18,6 +18,7 @@ package framework
 
 import (
 	"fmt"
+	"strings"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -477,4 +478,18 @@ func (ssn Session) String() string {
 	}
 
 	return msg
+
+}
+
+// ScaleAllocatables scale the Allocatable Resources from the "ScaleAllocatable" configuration element
+func (ssn *Session) ScaleAllocatables(configurations []conf.Configuration) {
+	for _, adjustConf := range configurations {
+		klog.V(4).Infof("Checking config item <%s>", adjustConf.Name)
+		if strings.EqualFold(adjustConf.Name, "ScaleAllocatable") {
+			factors := adjustConf.Arguments
+			for _, nodeInfo := range ssn.Nodes {
+				nodeInfo.Allocatable.ScaleResource(factors)
+			}
+		}
+	}
 }

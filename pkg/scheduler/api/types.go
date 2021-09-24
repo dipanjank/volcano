@@ -23,6 +23,9 @@ import (
 // TaskStatus defines the status of a task/pod.
 type TaskStatus int
 
+// PodReclaimable Used in HDRF to disable reclaim action
+const PodReclaimable = "volcano.sh/reclaimable"
+
 const (
 	// Pending means the task is pending in the apiserver.
 	Pending TaskStatus = 1 << iota

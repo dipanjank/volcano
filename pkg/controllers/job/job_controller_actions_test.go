@@ -196,8 +196,9 @@ func TestSyncJobFunc(t *testing.T) {
 			Name: "SyncJob success Case",
 			Job: &v1alpha1.Job{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "job1",
-					Namespace: namespace,
+					Name:        "job1",
+					Namespace:   namespace,
+					Annotations: map[string]string{"volcano.sh/counter-label": "VK_POD_ID"},
 				},
 				Spec: v1alpha1.JobSpec{
 					Tasks: []v1alpha1.TaskSpec{
@@ -224,6 +225,7 @@ func TestSyncJobFunc(t *testing.T) {
 					State: v1alpha1.JobState{
 						Phase: v1alpha1.Pending,
 					},
+					Counter: 2,
 				},
 			},
 			PodGroup: &schedulingv1alpha2.PodGroup{
@@ -252,8 +254,8 @@ func TestSyncJobFunc(t *testing.T) {
 				},
 			},
 			Pods: map[string]*v1.Pod{
-				"job1-task1-0": buildPod(namespace, "job1-task1-0", v1.PodRunning, nil),
-				"job1-task1-1": buildPod(namespace, "job1-task1-1", v1.PodRunning, nil),
+				"job1-task1-0": buildPod(namespace, "job1-task1-0", v1.PodRunning, map[string]string{"VK_POD_ID": "0"}),
+				"job1-task1-1": buildPod(namespace, "job1-task1-1", v1.PodRunning, map[string]string{"VK_POD_ID": "1"}),
 			},
 			TotalNumPods: 6,
 			Plugins:      []string{"svc", "ssh", "env"},
@@ -309,6 +311,19 @@ func TestSyncJobFunc(t *testing.T) {
 			}
 			if testcase.TotalNumPods != len(podList.Items) {
 				t.Errorf("Expected Total number of pods to be same as podlist count: Expected: %d, Got: %d in case: %d", testcase.TotalNumPods, len(podList.Items), i)
+			}
+
+			var podIds []int
+			for _, pod := range podList.Items {
+				id, _ := strconv.Atoi(pod.Labels["VK_POD_ID"])
+				podIds = append(podIds, id)
+			}
+
+			// pods can appear out of order, so we need to sort it before comparing with expected
+			sort.Ints(podIds)
+
+			if !reflect.DeepEqual(podIds, []int{0, 1, 3, 4, 5, 6}) {
+				t.Error("Error when incrementing the counter of the jobs")
 			}
 		})
 	}

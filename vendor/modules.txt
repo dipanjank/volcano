@@ -186,6 +186,7 @@ go.etcd.io/etcd/raft/raftpb
 go.etcd.io/etcd/raft/tracker
 go.etcd.io/etcd/version
 # go.uber.org/atomic v1.4.0
+## explicit
 go.uber.org/atomic
 # go.uber.org/automaxprocs v1.4.0
 ## explicit
@@ -845,7 +846,7 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
 ## explicit
 sigs.k8s.io/yaml
-# volcano.sh/apis v0.0.0-20210603070204-70005b2d502a
+# volcano.sh/apis v0.0.0-20210603070204-70005b2d502a => github.com/Tincoboekestijn/apis v0.0.0-20210907095657-54a1ba9c4b64
 ## explicit
 volcano.sh/apis/pkg/apis/batch/v1alpha1
 volcano.sh/apis/pkg/apis/bus/v1alpha1
@@ -905,3 +906,4 @@ volcano.sh/apis/pkg/client/listers/scheduling/v1beta1
 # k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.19.11
 # k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.19.11
 # k8s.io/sample-controller => k8s.io/sample-controller v0.19.11
+# volcano.sh/apis => github.com/Tincoboekestijn/apis v0.0.0-20210907095657-54a1ba9c4b64

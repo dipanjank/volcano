@@ -1,24 +1,28 @@
-name: Code Verify
+name: Test on branch commit
 
 on:
   push:
     branches:
-      - master
-    tags:
-  pull_request:
+      - '*'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
-  verify:
-    runs-on: ubuntu-18.04
-    name: Verify codes, generated files
-    timeout-minutes: 40
-    env:
-      GOPATH: /home/runner/work/${{ github.repository }}
+  docker:
+    runs-on: ubuntu-latest
     steps:
       - name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16.x
+          go-version: 1.14.x
+
+      - name: Install musl
+        run: |
+          wget http://musl.libc.org/releases/musl-1.2.1.tar.gz
+          tar -xf musl-1.2.1.tar.gz && cd musl-1.2.1
+          ./configure
+          make && sudo make install
 
       - name: Checkout code
         uses: actions/checkout@v2
@@ -33,9 +37,7 @@ jobs:
 
       - name: Run verify test
         run: |
-          make lint
-          make verify
+          # make verify
           make TAG=latest generate-yaml
-          make verify-generated-yaml
           make unit-test
         working-directory: ./src/github.com/${{ github.repository }}

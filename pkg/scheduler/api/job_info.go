@@ -256,6 +256,8 @@ type JobInfo struct {
 
 	Preemptable bool
 
+	Reclaimable bool
+
 	// RevocableZone support set volcano.sh/revocable-zone annotaion or label for pod/podgroup
 	// we only support empty value or * value for this version and we will support specify revocable zone name for futrue release
 	// empty value means workload can not use revocable node
@@ -275,6 +277,8 @@ func NewJobInfo(uid JobID, tasks ...*TaskInfo) *JobInfo {
 		TaskStatusIndex:  map[TaskStatus]tasksMap{},
 		Tasks:            tasksMap{},
 		TaskMinAvailable: map[TaskID]int32{},
+		// New jobs are reclaimable by default
+		Reclaimable: true,
 	}
 
 	for _, task := range tasks {
@@ -306,6 +310,7 @@ func (ji *JobInfo) SetPodGroup(pg *PodGroup) {
 	}
 
 	ji.Preemptable = ji.extractPreemptable(pg)
+	ji.Reclaimable = ji.extractReclaimable(pg)
 	ji.RevocableZone = ji.extractRevocableZone(pg)
 	ji.Budget = ji.extractBudget(pg)
 
@@ -338,33 +343,42 @@ func (ji *JobInfo) extractWaitingTime(pg *PodGroup) (*time.Duration, error) {
 	return &jobWaitingTime, nil
 }
 
+func getBoolAnnotationValueWithDefault(pg *PodGroup, annotation string, defaultValue bool) bool {
+	// check annotation first
+	if len(pg.Annotations) > 0 {
+		if value, found := pg.Annotations[annotation]; found {
+			b, err := strconv.ParseBool(value)
+			if err != nil {
+				klog.Warningf("invalid %s=%s", annotation, value)
+				return defaultValue
+			}
+			return b
+		}
+	}
+
+	// if annotation does not exit, check label
+	if len(pg.Labels) > 0 {
+		if value, found := pg.Labels[annotation]; found {
+			b, err := strconv.ParseBool(value)
+			if err != nil {
+				klog.Warningf("invalid %s=%s", annotation, value)
+				return defaultValue
+			}
+			return b
+		}
+	}
+
+	return defaultValue
+}
+
+// extractReclaimable return volcano.sh/reclaimable value for job
+func (ji *JobInfo) extractReclaimable(pg *PodGroup) bool {
+	return getBoolAnnotationValueWithDefault(pg, PodReclaimable, true)
+}
+
 // extractPreemptable return volcano.sh/preemptable value for job
 func (ji *JobInfo) extractPreemptable(pg *PodGroup) bool {
-	// check annotaion first
-	if len(pg.Annotations) > 0 {
-		if value, found := pg.Annotations[v1beta1.PodPreemptable]; found {
-			b, err := strconv.ParseBool(value)
-			if err != nil {
-				klog.Warningf("invalid %s=%s", v1beta1.PodPreemptable, value)
-				return false
-			}
-			return b
-		}
-	}
-
-	// it annotation does not exit, check label
-	if len(pg.Labels) > 0 {
-		if value, found := pg.Labels[v1beta1.PodPreemptable]; found {
-			b, err := strconv.ParseBool(value)
-			if err != nil {
-				klog.Warningf("invalid %s=%s", v1beta1.PodPreemptable, value)
-				return false
-			}
-			return b
-		}
-	}
-
-	return false
+	return getBoolAnnotationValueWithDefault(pg, v1beta1.PodPreemptable, false)
 }
 
 // extractRevocableZone return volcano.sh/revocable-zone value for pod/podgroup
@@ -495,6 +509,7 @@ func (ji *JobInfo) Clone() *JobInfo {
 		TaskMinAvailable: ji.TaskMinAvailable,
 		Tasks:            tasksMap{},
 		Preemptable:      ji.Preemptable,
+		Reclaimable:      ji.Reclaimable,
 		RevocableZone:    ji.RevocableZone,
 		Budget:           ji.Budget.Clone(),
 	}

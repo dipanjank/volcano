@@ -13,6 +13,7 @@ require (
 	github.com/prometheus/client_golang v1.7.1
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
+	go.uber.org/atomic v1.4.0
 	go.uber.org/automaxprocs v1.4.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
@@ -54,4 +55,5 @@ replace (
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.19.11
 	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.19.11
 	k8s.io/sample-controller => k8s.io/sample-controller v0.19.11
+	volcano.sh/apis => github.com/Tincoboekestijn/apis v0.0.0-20210907095657-54a1ba9c4b64
 )
