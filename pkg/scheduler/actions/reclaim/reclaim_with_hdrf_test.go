@@ -63,6 +63,9 @@ func TestReclaimWithHDRF(t *testing.T) {
 					Spec: schedulingv1.PodGroupSpec{
 						Queue: "test1",
 					},
+					Status: schedulingv1.PodGroupStatus{
+						Phase: schedulingv1.PodGroupInqueue,
+					},
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -71,6 +74,9 @@ func TestReclaimWithHDRF(t *testing.T) {
 					},
 					Spec: schedulingv1.PodGroupSpec{
 						Queue: "test2",
+					},
+					Status: schedulingv1.PodGroupStatus{
+						Phase: schedulingv1.PodGroupInqueue,
 					},
 				},
 			},
