@@ -81,6 +81,9 @@ func TestAddTaskInfo(t *testing.T) {
 				},
 				NodesFitErrors:   make(map[TaskID]*FitErrors),
 				TaskMinAvailable: make(map[TaskID]int32),
+
+				Preemptable: false,
+				Reclaimable: true,
 			},
 		},
 	}
@@ -94,8 +97,7 @@ func TestAddTaskInfo(t *testing.T) {
 		}
 
 		if !jobInfoEqual(ps, test.expected) {
-			t.Errorf("podset info %d: \n expected: %v, \n got: %v \n",
-				i, test.expected, ps)
+			t.Errorf("Test %d: Expected JobInfo & Actual JobInfo did not match", i)
 		}
 	}
 }
