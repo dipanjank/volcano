@@ -40,7 +40,7 @@ import (
 
 // HierarchyWeights user configured weights for the queue hierarchy
 type HierarchyWeights struct {
-	Weights map[string]int `yaml:"hierarchy-weights"`
+	Weights map[string]int
 }
 
 // readQueueConfig Read Dynamic Queue Configuration from a file.
