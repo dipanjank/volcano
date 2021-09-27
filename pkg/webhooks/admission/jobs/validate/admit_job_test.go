@@ -1041,7 +1041,7 @@ func TestValidateJobCreate(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "valid-job",
 					Namespace:   namespace,
-					Annotations: map[string]string{"volcano.sh/dynamic-queue": "default/test"},
+					Annotations: map[string]string{"volcano.sh/dynamic-queue": "root/test"},
 				},
 				Spec: v1alpha1.JobSpec{
 					MinAvailable: 1,
@@ -1077,47 +1077,11 @@ func TestValidateJobCreate(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "valid-job",
 					Namespace:   namespace,
-					Annotations: map[string]string{"volcano.sh/dynamic-queue": "default/one/two"},
+					Annotations: map[string]string{"volcano.sh/dynamic-queue": "root/one/two"},
 				},
 				Spec: v1alpha1.JobSpec{
 					MinAvailable: 1,
 					Queue:        "two",
-					Tasks: []v1alpha1.TaskSpec{
-						{
-							Name:     "task-1",
-							Replicas: 1,
-							Template: v1.PodTemplateSpec{
-								ObjectMeta: metav1.ObjectMeta{
-									Labels: map[string]string{"name": "test"},
-								},
-								Spec: v1.PodSpec{
-									Containers: []v1.Container{
-										{
-											Name:  "fake-name",
-											Image: "busybox:1.24",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			reviewResponse: v1beta1.AdmissionResponse{Allowed: true},
-			ret:            "",
-			ExpectErr:      false,
-		},
-		{
-			Name: "job with unsupported queue",
-			Job: v1alpha1.Job{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        "valid-job",
-					Namespace:   namespace,
-					Annotations: map[string]string{"volcano.sh/dynamic-queue": "notexist/one"},
-				},
-				Spec: v1alpha1.JobSpec{
-					MinAvailable: 1,
-					Queue:        "notexist",
 					Tasks: []v1alpha1.TaskSpec{
 						{
 							Name:     "task-1",
