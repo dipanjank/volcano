@@ -46,7 +46,7 @@ type HierarchyWeights struct {
 // readQueueConfig Read Dynamic Queue Configuration from a file.
 func readQueueConfig(filePath string) map[string]int32 {
 	hierarchyWeights := make(map[string]int32)
-
+	klog.V(3).Infof("Trying to read Hierarchy weights from <%s>", filePath)
 	contentBytes, err := ioutil.ReadFile(filePath)
 
 	if err != nil {
@@ -65,6 +65,7 @@ func readQueueConfig(filePath string) map[string]int32 {
 
 	for nodeName, nodeWeight := range weightsConf.Weights {
 		hierarchyWeights[nodeName] = int32(nodeWeight)
+		klog.V(3).Infof("Using hierarchy weight <%d> for <%s>", nodeName, nodeWeight)
 	}
 	return hierarchyWeights
 }
