@@ -50,7 +50,7 @@ func readQueueConfig(filePath string) map[string]int32 {
 	contentBytes, err := ioutil.ReadFile(filePath)
 
 	if err != nil {
-		klog.Warningf("Queue config file <%s> does not exist or cannot be read: <%s>", filePath, err.Error())
+		klog.Errorf("Queue config file <%s> does not exist or cannot be read: <%s>", filePath, err.Error())
 		return hierarchyWeights
 	}
 
@@ -59,7 +59,7 @@ func readQueueConfig(filePath string) map[string]int32 {
 	err = yaml.Unmarshal(contentBytes, weightsConf)
 
 	if err != nil {
-		klog.Warningf("Parse error in Queue config file <%s>: <%s>", filePath, err.Error())
+		klog.Errorf("Parse error in Queue config file <%s>: <%s>", filePath, err.Error())
 		return hierarchyWeights
 	}
 
@@ -94,6 +94,10 @@ func Run(config *options.Config) error {
 	vClient := getVolcanoClient(restConfig)
 	kubeClient := getKubeClient(restConfig)
 	queueConfig := readQueueConfig(config.QueueConfigFile)
+
+	if len(queueConfig) == 0 {
+		return fmt.Errorf("no hierarchy weights found")
+	}
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
