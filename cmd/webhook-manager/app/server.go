@@ -17,13 +17,12 @@ limitations under the License.
 package app
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
-	"reflect"
+	"sigs.k8s.io/yaml"
 	"strconv"
 	"syscall"
 
@@ -39,52 +38,34 @@ import (
 	"volcano.sh/volcano/pkg/webhooks/router"
 )
 
+// HierarchyWeights user configured weights for the queue hierarchy
+type HierarchyWeights struct {
+	Weights map[string]int `yaml:"hierarchy-weights"`
+}
+
 // readQueueConfig Read Dynamic Queue Configuration from a file.
 func readQueueConfig(filePath string) map[string]int32 {
 	hierarchyWeights := make(map[string]int32)
 
-	jsonFile, err := os.Open(filePath)
-	// if we os.Open returns an error then handle it
+	contentBytes, err := ioutil.ReadFile(filePath)
+
 	if err != nil {
 		klog.Warningf("Queue config file <%s> does not exist or cannot be read: <%s>", filePath, err.Error())
 		return hierarchyWeights
 	}
 
-	// defer the closing of our jsonFile so that we can parse it later on
-	defer func(jsonFile *os.File) {
-		err := jsonFile.Close()
-		if err != nil {
-		}
-	}(jsonFile)
+	// Try to unmarshall the YAML
+	weightsConf := &HierarchyWeights{}
+	err = yaml.Unmarshal(contentBytes, weightsConf)
 
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-
-	var result map[string]interface{}
-
-	err = json.Unmarshal(byteValue, &result)
 	if err != nil {
 		klog.Warningf("Parse error in Queue config file <%s>: <%s>", filePath, err.Error())
 		return hierarchyWeights
 	}
 
-	// Read the hierarchyweights element from the json and parse the values into int
-	weights, exists := result["hierarchyweights"]
-
-	if !exists {
-		klog.Warningf("No entry <hierarchyweights> found in Queue config file <%s>", filePath)
-		return hierarchyWeights
+	for nodeName, nodeWeight := range weightsConf.Weights {
+		hierarchyWeights[nodeName] = int32(nodeWeight)
 	}
-
-	wIter := reflect.ValueOf(weights).MapRange()
-
-	for wIter.Next() {
-		name := fmt.Sprintf("%v", wIter.Key())
-		weight, err := strconv.Atoi(fmt.Sprintf("%v", wIter.Value()))
-		if err == nil {
-			hierarchyWeights[name] = int32(weight)
-		}
-	}
-
 	return hierarchyWeights
 }
 
