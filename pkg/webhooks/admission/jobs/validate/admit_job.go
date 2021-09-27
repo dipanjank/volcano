@@ -274,6 +274,8 @@ func createQueue(queueName string, hierarchy string, hierarchyWeights string) (*
 		},
 	}
 
+	klog.V(3).Infof("Trying to create queue <%s> with hierarchy <%s>, weights <%s>",
+		queueName, hierarchy, hierarchyWeights)
 	if _, err := config.VolcanoClient.SchedulingV1beta1().Queues().Create(context.TODO(), &queue, metav1.CreateOptions{}); err != nil {
 		klog.Errorf("unable to create the dynamic queue <`%s`>: %v", queueName, err)
 		return nil, err
