@@ -48,7 +48,6 @@ func readQueueConfig(filePath string) map[string]int32 {
 	hierarchyWeights := make(map[string]int32)
 	klog.V(3).Infof("Trying to read Hierarchy weights from <%s>", filePath)
 	contentBytes, err := ioutil.ReadFile(filePath)
-	klog.V(3).Infof("File content is: <%s>", string(contentBytes))
 
 	if err != nil {
 		klog.Errorf("Queue config file <%s> does not exist or cannot be read: <%s>", filePath, err.Error())
@@ -58,7 +57,6 @@ func readQueueConfig(filePath string) map[string]int32 {
 	// Try to unmarshall the YAML
 	weightsConf := &HierarchyWeights{}
 	err = yaml.Unmarshal(contentBytes, weightsConf)
-	klog.V(3).Infof("After unmarshall: size of config is: <%d>", len(weightsConf.Weights))
 
 	if err != nil {
 		klog.Errorf("Parse error in Queue config file <%s>: <%s>", filePath, err.Error())
