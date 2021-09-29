@@ -42,6 +42,7 @@ type Config struct {
 	WebhookNamespace  string
 	SchedulerName     string
 	WebhookURL        string
+	QueueConfigFile   string
 }
 
 // NewConfig create new config.
@@ -69,6 +70,7 @@ func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.WebhookURL, "webhook-url", "", "The url of this webhook")
 
 	fs.StringVar(&c.SchedulerName, "scheduler-name", defaultSchedulerName, "Volcano will handle pods whose .spec.SchedulerName is same as scheduler-name")
+	fs.StringVar(&c.QueueConfigFile, "queue-config-file", "", "File containing weights for the dynamic queue hierarchy nodes.")
 }
 
 // CheckPortOrDie check valid port range.

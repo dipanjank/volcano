@@ -192,9 +192,14 @@ func validateJobCreate(job *v1alpha1.Job, reviewResponse *v1beta1.AdmissionRespo
 	}
 
 	if dynamicQueue, ok := job.Annotations["volcano.sh/dynamic-queue"]; ok {
-		var queues = strings.Split(dynamicQueue, "/")
-		if err := createDynamicQueue(queues, []int32{}, []string{}); err != nil {
-			msg += err.Error()
+		// dynamic queue name must start with "root", otherwise DRF does not work properly.
+		queueHierarchy := strings.Split(dynamicQueue, "/")
+		if queueHierarchy[0] == "root" {
+			if err := createDynamicQueue(queueHierarchy); err != nil {
+				msg += err.Error()
+			}
+		} else {
+			msg += fmt.Sprintf("Dynamic Queue name <%s> does not start with root", dynamicQueue)
 		}
 	}
 
@@ -213,48 +218,48 @@ func validateJobCreate(job *v1alpha1.Job, reviewResponse *v1beta1.AdmissionRespo
 	return msg
 }
 
-func createDynamicQueue(queues []string, parentWeights []int32, parentQueues []string) error {
+// createDynamicQueue Dynamically create the queue hierarchy node by node, checking if each node exists and creating
+// if it does not. Construct the hierarchy weight by concatenating the hierarchy weights defined in configuration.
+func createDynamicQueue(queueHierarchy []string) error {
 
-	var newWeight []int32
-	var newQueues []string
-
-	queueName := queues[0]
-	remainderQueue := queues[1:]
-
-	newQueues = append(parentQueues, queueName)
-
-	if queueName == mutate.DefaultQueue {
-		newWeight = append(parentWeights, 1)
-		return createDynamicQueue(remainderQueue, newWeight, newQueues)
-	}
-
-	parentQueue, err := config.VolcanoClient.SchedulingV1beta1().Queues().Get(context.TODO(), queueName, metav1.GetOptions{})
-
-	if errors.IsNotFound(err) {
-		newWeight = append(parentWeights, 1)
-
-		hierarchyWeights := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(newWeight)), "/"), "[]")
-		hierarchy := strings.Trim(strings.Join(newQueues, "/"), "[]")
-
-		klog.V(3).Infof("admit dynamic queue <`%s`>", queueName)
-
-		if _, err = createQueue(queueName, hierarchy, hierarchyWeights); err != nil {
-			return fmt.Errorf("unable to admit queue <`%s`>: %v", queueName, err)
+	for _, nodeName := range queueHierarchy {
+		if nodeName == mutate.DefaultQueue {
+			return errors.NewBadRequest("Cannot use default queue as part of the hierarchy.")
 		}
-	} else if err != nil {
-		return fmt.Errorf("unable to retrieve queue<`%s`>: `%v`", queueName, err)
-	} else if parentQueue.Status.State == schedulingv1beta1.QueueStateOpen {
-		klog.V(3).Infof("accept queue <`%s`> new jobs", queueName)
-		newWeight = append(parentWeights, parentQueue.Spec.Weight)
+	}
+
+	n := len(queueHierarchy)
+	queueName := queueHierarchy[n-1]
+
+	// Check if the queue already exists
+	_, getError := config.VolcanoClient.SchedulingV1beta1().Queues().Get(
+		context.TODO(),
+		queueName,
+		metav1.GetOptions{})
+
+	if errors.IsNotFound(getError) {
+		hierarchy := strings.Join(queueHierarchy, "/")
+
+		// Construct the hierarchy weight by checking if each node in the path has a weight specified
+		// in the config. If not found, use 1 as default
+		var hierarchyWeights []string
+
+		for _, name := range queueHierarchy {
+			weight, exists := config.QueueConfig[name]
+			if exists {
+				hierarchyWeights = append(hierarchyWeights, fmt.Sprintf("%d", weight))
+			} else {
+				hierarchyWeights = append(hierarchyWeights, "1")
+			}
+		}
+		_, err := createQueue(queueName, hierarchy, strings.Join(hierarchyWeights, "/"))
+		if err != nil {
+			return err
+		}
 	} else {
-		return fmt.Errorf("unable to use queue <`%s`> with status<`%s`>", parentQueue.Name, parentQueue.Status.State)
+		klog.V(3).Infof("Queue <%s> already exists.", queueName)
 	}
-
-	if len(remainderQueue) == 0 {
-		return nil
-	}
-
-	return createDynamicQueue(remainderQueue, newWeight, newQueues)
+	return nil
 }
 
 func createQueue(queueName string, hierarchy string, hierarchyWeights string) (*schedulingv1beta1.Queue, error) {
@@ -274,13 +279,15 @@ func createQueue(queueName string, hierarchy string, hierarchyWeights string) (*
 		},
 	}
 
+	klog.V(3).Infof("Trying to create queue <%s> with hierarchy <%s>, weights <%s>",
+		queueName, hierarchy, hierarchyWeights)
 	if _, err := config.VolcanoClient.SchedulingV1beta1().Queues().Create(context.TODO(), &queue, metav1.CreateOptions{}); err != nil {
-		fmt.Sprintf("unable to create the dynamic queue <`%s`>: %v", queueName, err)
+		klog.Errorf("unable to create the dynamic queue <`%s`>: %v", queueName, err)
 		return nil, err
 	}
 
 	if err := wait.PollImmediate(time.Second/2, time.Second*5, isQueueRunning(queueName)); err != nil {
-		fmt.Sprintf("unable to use the dynamic queue <`%s`>: %v", queueName, err)
+		klog.Errorf("unable to use the dynamic queue <`%s`>: %v", queueName, err)
 		return nil, err
 	}
 
