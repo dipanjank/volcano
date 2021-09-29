@@ -192,9 +192,14 @@ func validateJobCreate(job *v1alpha1.Job, reviewResponse *v1beta1.AdmissionRespo
 	}
 
 	if dynamicQueue, ok := job.Annotations["volcano.sh/dynamic-queue"]; ok {
+		// dynamic queue name must start with "root", otherwise DRF does not work properly.
 		queueHierarchy := strings.Split(dynamicQueue, "/")
-		if err := createDynamicQueue(queueHierarchy); err != nil {
-			msg += err.Error()
+		if queueHierarchy[0] == "root" {
+			if err := createDynamicQueue(queueHierarchy); err != nil {
+				msg += err.Error()
+			}
+		} else {
+			msg += fmt.Sprintf("Dynamic Queue name <%s> does not start with root", dynamicQueue)
 		}
 	}
 

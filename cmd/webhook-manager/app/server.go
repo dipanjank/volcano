@@ -95,6 +95,13 @@ func Run(config *options.Config) error {
 	kubeClient := getKubeClient(restConfig)
 	queueConfig := readQueueConfig(config.QueueConfigFile)
 
+	// Fail the admission container if no hierarchy weights are found
+	// This is not compatible with the dap use-case
+	if len(queueConfig) == 0 {
+		return fmt.Errorf("no queue hierarchy weights found in <%s>. Plase check admission configuration",
+			config.QueueConfigFile)
+	}
+
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: config.SchedulerName})
