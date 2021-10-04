@@ -1,0 +1,120 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Volcano ui</title>
+    <link rel="stylesheet" href="static/css/milligram-fork.min.css">
+    <link rel="stylesheet" href="static/css/bootstrap-progress.min.css">
+    <link rel="stylesheet" href="static/css/main.css">
+    <style>
+        #treeview {
+            background-color: #f4f5f6;
+        }
+
+        .button-nav{
+            width: 100%;
+        }
+        .column {
+            padding: 0 2.0rem !important;
+        }
+        img {
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="wrapper">
+    <section class="container">
+        <div class="row">
+            <div class="column column-25">
+                <img src="/static/img/volcano_logo.png" alt="Volcano">
+
+                <h3 class="title"></h3>
+
+                <dl>
+                    <dt>
+                        <button class="button button-outline button-nav">
+                            Scheduler
+                        </button>
+                    </dt>
+                </dl>
+            </div>
+            <div class="column column-75">
+<!--                <section>-->
+                    <h3>Resource overview</h3>
+                    <treeview></treeview>
+<!--                </section>-->
+<!--                <section>-->
+<!--                    <h3>Queues</h3>-->
+<!--                    <queue />-->
+<!--                </section>-->
+            </div>
+        </div>
+    </section>
+</body>
+<script src="/static/riot/treeview.riot" type="riot"></script>
+<script src="/static/riot/queue_info.riot" type="riot"></script>
+
+<script src="/static/riot/queue.riot" type="riot"></script>
+
+<script src="/static/js/riot+compiler.min.js"></script>
+
+<script>
+
+    const queueJson = JSON.parse({{ toJson .Queues.Items }})
+    const jobsJson = JSON.parse({{ toJson .Jobs.Items }})
+
+    setInterval(() => {
+
+    })
+
+    const recurseValue = (queue, queues) => {
+        const parent = queues.find(x => x.name == queue.parent)
+        return (!!parent) ? queue.percent * recurseValue(parent, queues) : queue.percent
+    }
+
+    const queues = queueJson.map((queue, index) => {
+        return {
+            ...(("annotations" in queue.metadata && "volcano.sh/hierarchy" in queue.metadata.annotations) ? {
+                name: queue.metadata.annotations["volcano.sh/hierarchy"].split("/").slice(-1)[0],
+                weight: queue.metadata.annotations["volcano.sh/hierarchy-weights"].split("/").map(x => parseInt(x)).slice(-1)[0],
+                parent: queue.metadata.annotations["volcano.sh/hierarchy"].split("/").slice(-2)[0]
+            } : {
+                name: "root",
+                weight: 1,
+                parent: null
+            }),
+            ...queue
+        }
+    }).map((queue, index, queues) => {
+        const total = queues.filter(x => x.parent == queue.parent).reduce((x, y) => x + y.weight, 0)
+        return {
+            total: total,
+            percent: queue.weight / total,
+            ...queue
+        }
+    }).map((queue, index, queues) => {
+        console.log(queue, (!queues.find(x => x.parent == queue.name)))
+        return {
+            value: recurseValue(queue, queues),
+            ...queue
+        }
+    })
+
+    const jobs = jobsJson.map((job) => {
+        return {
+            name: job.metadata.name,
+            parent: job.spec.queue.split("-").slice(-1)[0],
+            ...job
+        }
+    })
+
+
+    riot.compile().then(() => {
+        riot.mount('treeview', { queues : [...queues, ...jobs]})
+        riot.mount('queue', { queues : queues, jobs: jobs})
+    })
+
+</script>
+
+</html>
+

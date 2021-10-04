@@ -1,0 +1,40 @@
+<queueinfo>
+    <li>
+        <div if={props.item.kind == "Queue"} onclick={(event) => { event.stopPropagation(); this.expand(); }}>
+            <span class="progress-label">
+              { props.item.name }
+            </span>
+            <div class="progress">
+                <div class="progress-bar progress-bar-success" style={ getWidth(10) }>
+                    Used
+                </div>
+                <div class="progress-bar progress-bar-minimal" style={ getWidth((props.item.value * 100) - 10) }>
+                    <div class="progress-under">
+                        {(props.item.value * 100) | 0}%
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div if={props.item.kind == "Job"} class="job-name">
+            { props.item.name } - { props.item.status.state.phase } - running { props.item.status.running } - pending { props.item.status.pending }
+        </div>
+        <treeview if={state.expanded} queues={props.queues} parent={props.item.name}></treeview>
+    </li>
+
+    <script>
+        export default {
+            onBeforeMount(props, state) {
+                console.log("queuee info props", props)
+                state = {
+                    expanded: false
+                }
+            },
+            getWidth(percentage) {
+                return "width: " + percentage + "%"
+            },
+            expand() {
+                this.update({expanded: !this.state.expanded })
+            }
+        }
+    </script>
+</queueinfo>

@@ -56,7 +56,7 @@ include Makefile.def
 
 .EXPORT_ALL_VARIABLES:
 
-all: vc-scheduler vc-controller-manager vc-webhook-manager vcctl command-lines
+all: vc-scheduler vc-controller-manager vc-webhook-manager vc-ui vcctl command-lines
 
 init:
 	mkdir -p ${BIN_DIR}
@@ -70,6 +70,9 @@ vc-controller-manager: init
 
 vc-webhook-manager: init
 	go build -ldflags ${LD_FLAGS} -o=${BIN_DIR}/vc-webhook-manager ./cmd/webhook-manager
+
+vc-ui: init
+	go build -ldflags ${LD_FLAGS} -o=${BIN_DIR}/vc-ui ./cmd/ui
 
 vcctl: init
 	go build -ldflags ${LD_FLAGS} -o=${BIN_DIR}/vcctl ./cmd/cli
