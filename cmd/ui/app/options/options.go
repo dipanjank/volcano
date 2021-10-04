@@ -28,6 +28,7 @@ const (
 	defaultSchedulerName = "volcano"
 	defaultQPS           = 50.0
 	defaultBurst         = 100
+	defaultPrometheusURL = "http://localhost:30003"
 )
 
 // Config admission-controller server config.
@@ -42,6 +43,7 @@ type Config struct {
 	UiNamespace  string
 	SchedulerName     string
 	UiURL        string
+	PrometheusURL string
 }
 
 // NewConfig create new config.
@@ -69,6 +71,8 @@ func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.UiURL, "ui-url", "", "The url of this ui")
 
 	fs.StringVar(&c.SchedulerName, "scheduler-name", defaultSchedulerName, "Volcano will handle pods whose .spec.SchedulerName is same as scheduler-name")
+
+	fs.StringVar(&c.PrometheusURL, "prometheus-url", defaultPrometheusURL, "Volcano will retrieve metrics from the prometheus")
 }
 
 // CheckPortOrDie check valid port range.

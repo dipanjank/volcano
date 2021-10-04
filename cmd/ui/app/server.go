@@ -22,6 +22,9 @@ import (
 	_ "embed"
 	"fmt"
 	"github.com/Masterminds/sprig"
+	prometheusAPI "github.com/prometheus/client_golang/api"
+	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 	"html/template"
 	_ "html/template"
 	"io/fs"
@@ -29,6 +32,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"net/http"
+	"time"
 	"volcano.sh/apis/pkg/apis/batch/v1alpha1"
 	"volcano.sh/apis/pkg/apis/scheduling/v1beta1"
 	"volcano.sh/apis/pkg/client/clientset/versioned"
@@ -40,6 +44,8 @@ import (
 var (
 	vClient *versioned.Clientset
 	kubeClient *kubernetes.Clientset
+	prometheusApi prometheusv1.API
+	prometheusCtx context.Context
 	//go:embed templates/index.html
 	index string
 )
@@ -61,6 +67,14 @@ func Run(config *options.Config) error {
 		return fmt.Errorf("unable to build k8s config: %v", err)
 	}
 
+	client, err := prometheusAPI.NewClient(prometheusAPI.Config{
+		Address: config.PrometheusURL,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to connect to prometheus: %v", err)
+	}
+	prometheusApi = prometheusv1.NewAPI(client)
+
 	//caBundle, err := ioutil.ReadFile(config.CaCertFile)
 	//if err != nil {
 	//	return fmt.Errorf("unable to read cacert file (%s): %v", config.CaCertFile, err)
@@ -78,6 +92,7 @@ func Run(config *options.Config) error {
 type Page struct {
 	Queues *v1beta1.QueueList `json:"queues,omitempty"`
 	Jobs   *v1alpha1.JobList  `json:"jobs,omitempty"`
+	Metrics map[string]model.Value
 }
 
 //go:embed static
@@ -91,9 +106,27 @@ func getFileSystem() http.FileSystem {
 	return http.FS(fsys)
 }
 
+type PromResult struct {
+	QueueName string `yaml:"queue_name,omitempty"`
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
 	queues, _ := vClient.SchedulingV1beta1().Queues().List(context.TODO(), metav1.ListOptions{})
 	jobs, _ := vClient.BatchV1alpha1().Jobs("default").List(context.TODO(), metav1.ListOptions{})
+	query := []string{
+		"volcano_queue_allocated_memory_bytes",
+		"volcano_queue_allocated_milli_cpu",
+	}
+	metrics := make(map[string]model.Value)
+	for _, param := range query {
+		value, _, err := prometheusApi.Query(context.TODO(), param, time.Now())
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		vector := value.(model.Vector)
+		metrics[param] = vector
+	}
 
 	base, err := template.New("base").Funcs(sprig.FuncMap()).Parse(index)
 
@@ -104,7 +137,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	t := template.Must(base, err)
 
-	err = t.Execute(w, &Page{Queues: queues, Jobs: jobs})
+	err = t.Execute(w, &Page{Queues: queues, Jobs: jobs, Metrics: metrics})
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

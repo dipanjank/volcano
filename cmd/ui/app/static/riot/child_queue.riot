@@ -1,0 +1,65 @@
+<child_queue>
+    <li>
+        <div if={props.item.kind == "Queue"} onclick={(event) => { event.stopPropagation(); this.expand(); }}>
+            <span class="progress-label">
+              { props.item.name }
+            </span>
+            <div class="progress progress-capacity">
+                <div class="progress-bar progress-bar-success" style={ getWidth(10) }>
+                    Used
+                </div>
+                <div class="progress-bar progress-bar-minimal" style={ getWidth((10) - 10) }>
+                    <div class="progress-under">
+                        10%
+                    </div>
+                </div>
+            </div>
+            {state.queue_metrics}
+            <div class="metrics">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr if={!!state.queue_metrics["allocated_memory_bytes"]}>
+                        <td>Allocated memory</td>
+                        <td>{state.queue_metrics["allocated_memory_bytes"]}</td>
+                    </tr>
+                    <tr if={!!state.queue_metrics["allocated_milli_cpu"]}>
+                        <td>Allocated cpus</td>
+                        <td>{state.queue_metrics["allocated_milli_cpu"]}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div if={props.item.kind == "Job"} class="job-name">
+            { props.item.name } - { props.item.status.state.phase } - running { props.item.status.running } - pending { props.item.status.pending }
+        </div>
+        <parent_queue if={this.state.expanded} queues={props.queues} parent={props.item.fullname} metrics={props.metrics} />
+    </li>
+    <style>
+        .metrics {
+            margin-left: 72px;
+        }
+    </style>
+    <script>
+        export default {
+            onBeforeMount(props, state) {
+                state = {
+                    expanded: false,
+                    queue_metrics: props.metrics[props.item.name]
+                }
+            },
+            getWidth(percentage) {
+                return "width: " + percentage + "%"
+            },
+            expand() {
+                this.update({expanded: !this.state.expanded })
+            }
+        }
+    </script>
+</child_queue>

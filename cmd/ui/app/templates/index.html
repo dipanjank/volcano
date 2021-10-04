@@ -52,8 +52,8 @@
     </section>
 </body>
 <script src="/static/riot/treeview.riot" type="riot"></script>
-<script src="/static/riot/queue_info.riot" type="riot"></script>
-
+<script src="/static/riot/child_queue.riot" type="riot"></script>
+<script src="/static/riot/parent_queue.riot" type="riot"></script>
 <script src="/static/riot/queue.riot" type="riot"></script>
 
 <script src="/static/js/riot+compiler.min.js"></script>
@@ -62,55 +62,58 @@
 
     const queueJson = JSON.parse({{ toJson .Queues.Items }})
     const jobsJson = JSON.parse({{ toJson .Jobs.Items }})
+    const metricsJson = JSON.parse({{ toJson .Metrics }})
 
-    setInterval(() => {
+    const metrics = Object.entries(metricsJson).reduce((obj, [full_metric_name, entry]) => {
+        entry.forEach((value) => {
+            if (!obj[value.metric["queue_name"]]){
+                obj[value.metric["queue_name"]] = {}
+            }
+            const queue_name = value.metric["queue_name"]
+            const metric_name = full_metric_name.replace("volcano_queue_", "")
+            obj[queue_name][metric_name] = value.value[0]
+            return obj
+        })
+        return obj
+    }, {})
 
-    })
-
-    const recurseValue = (queue, queues) => {
-        const parent = queues.find(x => x.name == queue.parent)
-        return (!!parent) ? queue.percent * recurseValue(parent, queues) : queue.percent
-    }
-
+    console.log("metrics", metrics)
     const queues = queueJson.map((queue, index) => {
-        return {
-            ...(("annotations" in queue.metadata && "volcano.sh/hierarchy" in queue.metadata.annotations) ? {
-                name: queue.metadata.annotations["volcano.sh/hierarchy"].split("/").slice(-1)[0],
-                weight: queue.metadata.annotations["volcano.sh/hierarchy-weights"].split("/").map(x => parseInt(x)).slice(-1)[0],
-                parent: queue.metadata.annotations["volcano.sh/hierarchy"].split("/").slice(-2)[0]
-            } : {
+        if ("annotations" in queue.metadata && "volcano.sh/hierarchy" in queue.metadata.annotations) {
+            const hierarchy = queue.metadata.annotations["volcano.sh/hierarchy"].split("/")
+            const weights = queue.metadata.annotations["volcano.sh/hierarchy-weights"].split("/")
+            const inferedQueues = Array(hierarchy.length).fill(0).map((val, i) => {
+                console.log(hierarchy.slice().reverse().splice(i).reverse().join("-"), hierarchy.slice().reverse().splice(i + 1).reverse().join("-"))
+                return {
+                    fullname: hierarchy.slice().reverse().splice(i).reverse().join("-"),
+                    name: hierarchy.slice().reverse().slice(i)[0],
+                    weight: weights.slice().reverse().slice(i)[0],
+                    parent: (i != hierarchy.length - 1) ?hierarchy.slice().reverse().splice(i + 1).reverse().join("-") : undefined,
+                    kind: "Queue"
+                }
+            })
+            return inferedQueues
+        } else {
+            return {
+                fullname: "root",
                 name: "root",
                 weight: 1,
-                parent: null
-            }),
-            ...queue
+                parent: null,
+                kind: "Queue"
+            }
         }
-    }).map((queue, index, queues) => {
-        const total = queues.filter(x => x.parent == queue.parent).reduce((x, y) => x + y.weight, 0)
-        return {
-            total: total,
-            percent: queue.weight / total,
-            ...queue
-        }
-    }).map((queue, index, queues) => {
-        console.log(queue, (!queues.find(x => x.parent == queue.name)))
-        return {
-            value: recurseValue(queue, queues),
-            ...queue
-        }
-    })
+    }).flat().filter((v,i,a)=>a.findIndex(t=>(t.fullname === v.fullname))===i)
 
     const jobs = jobsJson.map((job) => {
         return {
             name: job.metadata.name,
-            parent: job.spec.queue.split("-").slice(-1)[0],
+            parent: job.spec.queue,
             ...job
         }
     })
 
-
     riot.compile().then(() => {
-        riot.mount('treeview', { queues : [...queues, ...jobs]})
+        riot.mount('treeview', { queues : [...queues, ...jobs], metrics: metrics})
         riot.mount('queue', { queues : queues, jobs: jobs})
     })
 

@@ -1,8 +1,7 @@
 <treeview>
-  <div if={ !this.props.parent }>
-
+  <div>
     <div class="input-group">
-      <input type="search" class="form-control rounded" placeholder="Search" aria-label="Search"
+      <input type="search" class="form-control rounded" style="box-sizing: revert;" placeholder="Search" aria-label="Search"
              aria-describedby="search-addon" />
     </div>
     <br>
@@ -22,9 +21,7 @@
     </div>
     <br>
   </div>
-  <ul >
-    <queueinfo each={ item in this.state.childs } item={item} queues={props.queues} jobs={props.jobs} />
-  </ul>
+  <parent_queue queues={props.queues} metrics={props.metrics} />
   <style>
     .job-name {
       font-size: 14px;
@@ -79,7 +76,7 @@
     li:last-child:after {
       height: 15px;
     }
-    .progress{
+    .progress-capacity{
       overflow: inherit;
       display: inline-block;
       width: calc(100% - 72px);
@@ -129,12 +126,6 @@
         this.styles = {
           color: 'red',
           height: '10rem'
-        }
-        console.log("props", props)
-        this.state = {
-          childs: (props.parent)
-            ? props.queues.filter((queue) => queue.parent == props.parent)
-            : props.queues.filter((queue) => queue.name == "root")
         }
       },
       getWidth(percentage) {
