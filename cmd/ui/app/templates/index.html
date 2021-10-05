@@ -41,6 +41,7 @@
             <div class="column column-75">
 <!--                <section>-->
                     <h3>Resource overview</h3>
+                    <div id="refresh_text"></div>
                     <treeview></treeview>
 <!--                </section>-->
 <!--                <section>-->
@@ -59,62 +60,91 @@
 <script src="/static/js/riot+compiler.min.js"></script>
 
 <script>
+    function getInitialData(){
+        return [
+            JSON.parse({{ toJson .Queues.Items }}),
+            JSON.parse({{ toJson .Jobs.Items }}),
+            JSON.parse({{ toJson .Metrics }})
+        ]
+    }
 
-    const queueJson = JSON.parse({{ toJson .Queues.Items }})
-    const jobsJson = JSON.parse({{ toJson .Jobs.Items }})
-    const metricsJson = JSON.parse({{ toJson .Metrics }})
-
-    const metrics = Object.entries(metricsJson).reduce((obj, [full_metric_name, entry]) => {
-        entry.forEach((value) => {
-            if (!obj[value.metric["queue_name"]]){
-                obj[value.metric["queue_name"]] = {}
-            }
-            const queue_name = value.metric["queue_name"]
-            const metric_name = full_metric_name.replace("volcano_queue_", "")
-            obj[queue_name][metric_name] = value.value[0]
+    function parseData(queueJson, jobsJson, metricsJson) {
+        const metrics = Object.entries(metricsJson).reduce((obj, [full_metric_name, entry]) => {
+            entry.forEach((value) => {
+                if (!obj[value.metric["queue_name"]]){
+                    obj[value.metric["queue_name"]] = {}
+                }
+                const queue_name = value.metric["queue_name"]
+                const metric_name = full_metric_name.replace("volcano_queue_", "")
+                obj[queue_name][metric_name] = value.value[1]
+                return obj
+            })
             return obj
-        })
-        return obj
-    }, {})
+        }, {})
 
-    console.log("metrics", metrics)
-    const queues = queueJson.map((queue, index) => {
-        if ("annotations" in queue.metadata && "volcano.sh/hierarchy" in queue.metadata.annotations) {
-            const hierarchy = queue.metadata.annotations["volcano.sh/hierarchy"].split("/")
-            const weights = queue.metadata.annotations["volcano.sh/hierarchy-weights"].split("/")
-            const inferedQueues = Array(hierarchy.length).fill(0).map((val, i) => {
-                console.log(hierarchy.slice().reverse().splice(i).reverse().join("-"), hierarchy.slice().reverse().splice(i + 1).reverse().join("-"))
+        const queues = queueJson.map((queue, index) => {
+            if ("annotations" in queue.metadata && "volcano.sh/hierarchy" in queue.metadata.annotations) {
+                const hierarchy = queue.metadata.annotations["volcano.sh/hierarchy"].split("/")
+                const weights = queue.metadata.annotations["volcano.sh/hierarchy-weights"].split("/")
+                const inferedQueues = Array(hierarchy.length).fill(0).map((val, i) => {
+                    return {
+                        fullname: hierarchy.slice().reverse().splice(i).reverse().join("-"),
+                        name: hierarchy.slice().reverse().slice(i)[0],
+                        weight: weights.slice().reverse().slice(i)[0],
+                        parent: (i != hierarchy.length - 1) ?hierarchy.slice().reverse().splice(i + 1).reverse().join("-") : undefined,
+                        kind: "Queue"
+                    }
+                })
+                return inferedQueues
+            } else {
                 return {
-                    fullname: hierarchy.slice().reverse().splice(i).reverse().join("-"),
-                    name: hierarchy.slice().reverse().slice(i)[0],
-                    weight: weights.slice().reverse().slice(i)[0],
-                    parent: (i != hierarchy.length - 1) ?hierarchy.slice().reverse().splice(i + 1).reverse().join("-") : undefined,
+                    fullname: "root",
+                    name: "root",
+                    weight: 1,
+                    parent: null,
                     kind: "Queue"
                 }
-            })
-            return inferedQueues
-        } else {
-            return {
-                fullname: "root",
-                name: "root",
-                weight: 1,
-                parent: null,
-                kind: "Queue"
             }
-        }
-    }).flat().filter((v,i,a)=>a.findIndex(t=>(t.fullname === v.fullname))===i)
+        }).flat().filter((v,i,a)=>a.findIndex(t=>(t.fullname === v.fullname))===i)
 
-    const jobs = jobsJson.map((job) => {
-        return {
-            name: job.metadata.name,
-            parent: job.spec.queue,
-            ...job
-        }
-    })
+        const jobs = jobsJson.map((job) => {
+            return {
+                name: job.metadata.name,
+                parent: job.spec.queue,
+                ...job
+            }
+        })
+
+        return [queues, jobs, metrics]
+    }
 
     riot.compile().then(() => {
-        riot.mount('treeview', { queues : [...queues, ...jobs], metrics: metrics})
-        riot.mount('queue', { queues : queues, jobs: jobs})
+        const [queuesJson, jobsJson, metricsJson] = getInitialData()
+        const [queues, jobs, metrics] = parseData(queuesJson, jobsJson, metricsJson)
+        const treeview = riot.mount('treeview', { queues, metrics, jobs})
+        const queue = riot.mount('queue', { queues, jobs})
+
+        let i = 0
+        setInterval(() => {
+            i++
+            if (i % 6 == 0) {
+                document.getElementById("refresh_text").innerHTML = "fetching data"
+                i = 0
+                fetch('/metrics.json')
+                    .then(response => response.json())
+                    .then(data => {
+                        const [queues, jobs, metrics] = parseData(data["queues"]["items"], data["jobs"]["items"], data["metrics"])
+                        treeview[0].updateData({queues, jobs, metrics})
+                    });
+            } else {
+                document.getElementById("refresh_text").innerHTML = (6 - i) + " seconds to refresh"
+            }
+        }, 1000)
+
+
+        // console.log("treeview", treeview)
+        // treeview.update({queues, metrics, jobs})
+        // console.log("queue", queue)
     })
 
 </script>

@@ -15,7 +15,7 @@ spec:
     env: []
     svc: []
   maxRetry: 5
-  queue: root-eng-prod
+  queue: root-interactive-ef34fg
   tasks:
     - replicas: 6
       name: "default-nginx"
@@ -31,6 +31,7 @@ spec:
               resources:
                 requests:
                   cpu: "0.5"
+                  memory: "512Mi"
           restartPolicy: OnFailure
 ---
 apiVersion: batch.volcano.sh/v1alpha1
@@ -48,7 +49,7 @@ spec:
     env: []
     svc: []
   maxRetry: 5
-  queue: root-eng-dev
+  queue: root-interactive-ab12cd
   tasks:
     - replicas: 6
       name: "default-nginx"
@@ -64,6 +65,7 @@ spec:
               resources:
                 requests:
                   cpu: "0.5"
+                  memory: "512Mi"
           restartPolicy: OnFailure
 
 
@@ -83,7 +85,7 @@ spec:
     env: []
     svc: []
   maxRetry: 5
-  queue: root-sci-prod
+  queue: root-projects-domino
   tasks:
     - replicas: 6
       name: "default-nginx"
@@ -99,6 +101,7 @@ spec:
               resources:
                 requests:
                   cpu: "0.5"
+                  memory: "512Mi"
           restartPolicy: OnFailure
 ---
 apiVersion: batch.volcano.sh/v1alpha1
@@ -116,7 +119,7 @@ spec:
     env: []
     svc: []
   maxRetry: 5
-  queue: root-sci-dev
+  queue: root-projects-oneclient
   tasks:
     - replicas: 6
       name: "default-nginx"
@@ -132,4 +135,5 @@ spec:
               resources:
                 requests:
                   cpu: "0.5"
+                  memory: "512Mi"
           restartPolicy: OnFailure

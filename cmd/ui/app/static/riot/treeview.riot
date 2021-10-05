@@ -6,23 +6,27 @@
     </div>
     <br>
     <div class="progress">
-      <div class="progress-bar progress-bar-minimal" style={ getWidth(25) }>
+      <div class="progress-bar progress-bar-minimal progress-bar-example">
         Min capacity
       </div>
-      <div class="progress-bar progress-bar-success" style={ getWidth(25) }>
+      <div class="progress-bar progress-bar-success progress-bar-example">
         Used
       </div>
-      <div class="progress-bar progress-bar-warning" style={ getWidth(25) }>
+      <div class="progress-bar progress-bar-warning progress-bar-example">
         Overused
       </div>
-      <div class="progress-bar progress-bar-capacity" style={ getWidth(25) }>
+      <div class="progress-bar progress-bar-capacity progress-bar-example">
         Max capacity
       </div>
     </div>
     <br>
   </div>
-  <parent_queue queues={props.queues} metrics={props.metrics} />
+  <parent_queue queues={this.state.queues} metrics={this.state.metrics} jobs={this.state.jobs}/>
   <style>
+
+    .progress-bar-example{
+      width: 25%;
+    }
     .job-name {
       font-size: 14px;
     }
@@ -127,9 +131,19 @@
           color: 'red',
           height: '10rem'
         }
+
+        this.state = {
+          queues: props.queues,
+          jobs: props.jobs,
+          metrics: props.metrics
+        }
       },
-      getWidth(percentage) {
-        return "width: " + percentage + "%"
+      updateData(data) {
+        this.update({
+          queues: data.queues,
+          jobs: data.jobs,
+          metrics: data.metrics
+        })
       }
     }
   </script>

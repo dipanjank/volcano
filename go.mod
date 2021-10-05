@@ -10,10 +10,12 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/huandu/xstrings v1.3.2 // indirect
+	github.com/jahnestacado/tlru v0.0.0-20200730090107-e1ec5c96073e
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.7.0
 	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/common v0.10.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9

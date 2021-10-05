@@ -20,6 +20,7 @@ import (
 	"context"
 	"embed"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"github.com/Masterminds/sprig"
 	prometheusAPI "github.com/prometheus/client_golang/api"
@@ -83,16 +84,11 @@ func Run(config *options.Config) error {
 	vClient = getVolcanoClient(restConfig)
 	kubeClient = getKubeClient(restConfig)
 
-	http.HandleFunc("/", handler)
+	http.HandleFunc("/", pageHandler)
+	http.HandleFunc("/metrics.json", dataHandler)
 	http.Handle("/static/", http.StripPrefix("/static/",http.FileServer(getFileSystem())))
 
 	return http.ListenAndServe(":8080", nil)
-}
-
-type Page struct {
-	Queues *v1beta1.QueueList `json:"queues,omitempty"`
-	Jobs   *v1alpha1.JobList  `json:"jobs,omitempty"`
-	Metrics map[string]model.Value
 }
 
 //go:embed static
@@ -106,11 +102,13 @@ func getFileSystem() http.FileSystem {
 	return http.FS(fsys)
 }
 
-type PromResult struct {
-	QueueName string `yaml:"queue_name,omitempty"`
+type Page struct {
+	Queues *v1beta1.QueueList `json:"queues,omitempty"`
+	Jobs   *v1alpha1.JobList  `json:"jobs,omitempty"`
+	Metrics map[string]model.Value `json:"metrics,omitempty"`
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
+func getMetrics() (*Page, error) {
 	queues, _ := vClient.SchedulingV1beta1().Queues().List(context.TODO(), metav1.ListOptions{})
 	jobs, _ := vClient.BatchV1alpha1().Jobs("default").List(context.TODO(), metav1.ListOptions{})
 	query := []string{
@@ -121,11 +119,35 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	for _, param := range query {
 		value, _, err := prometheusApi.Query(context.TODO(), param, time.Now())
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			return nil, err
 		}
 		vector := value.(model.Vector)
 		metrics[param] = vector
+	}
+	return &Page{Queues: queues, Jobs: jobs, Metrics: metrics}, nil
+}
+
+func dataHandler(w http.ResponseWriter, r *http.Request) {
+	page, err := getMetrics()
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	encoder := json.NewEncoder(w)
+	encoder.SetEscapeHTML(false)
+	encoder.Encode(page)
+}
+
+func pageHandler(w http.ResponseWriter, r *http.Request) {
+	page, err := getMetrics()
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	base, err := template.New("base").Funcs(sprig.FuncMap()).Parse(index)
@@ -137,7 +159,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	t := template.Must(base, err)
 
-	err = t.Execute(w, &Page{Queues: queues, Jobs: jobs, Metrics: metrics})
+	err = t.Execute(w, page)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

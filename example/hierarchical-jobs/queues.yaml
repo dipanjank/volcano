@@ -1,9 +1,9 @@
 apiVersion: scheduling.volcano.sh/v1beta1
 kind: Queue
 metadata:
-  name: root-eng-prod
+  name: root-projects-domino
   annotations:
-    "volcano.sh/hierarchy": "root/eng/prod"
+    "volcano.sh/hierarchy": "root/projects/domino"
     "volcano.sh/hierarchy-weights": "1/2/8"
 spec:
   weight: 1
@@ -11,9 +11,9 @@ spec:
 apiVersion: scheduling.volcano.sh/v1beta1
 kind: Queue
 metadata:
-  name: root-eng-dev
+  name: root-projects-oneclient
   annotations:
-    "volcano.sh/hierarchy": "root/eng/dev"
+    "volcano.sh/hierarchy": "root/projects/oneclient"
     "volcano.sh/hierarchy-weights": "1/2/2"
 spec:
   weight: 1
@@ -21,9 +21,9 @@ spec:
 apiVersion: scheduling.volcano.sh/v1beta1
 kind: Queue
 metadata:
-  name: root-sci-prod
+  name: root-interactive-ab12cd
   annotations:
-    "volcano.sh/hierarchy": "root/sci/prod"
+    "volcano.sh/hierarchy": "root/interactive/ab12cd"
     "volcano.sh/hierarchy-weights": "1/8/8"
 spec:
   weight: 1
@@ -31,9 +31,9 @@ spec:
 apiVersion: scheduling.volcano.sh/v1beta1
 kind: Queue
 metadata:
-  name: root-sci-dev
+  name: root-interactive-ef34fg
   annotations:
-    "volcano.sh/hierarchy": "root/sci/dev"
+    "volcano.sh/hierarchy": "root/interactive/ef34fg"
     "volcano.sh/hierarchy-weights": "1/8/2"
 spec:
   weight: 1

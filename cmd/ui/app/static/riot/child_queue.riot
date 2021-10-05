@@ -5,17 +5,20 @@
               { props.item.name }
             </span>
             <div class="progress progress-capacity">
-                <div class="progress-bar progress-bar-success" style={ getWidth(10) }>
+                <div class="progress-bar progress-bar-success" style={ getWidth(allocated) }>
                     Used
                 </div>
-                <div class="progress-bar progress-bar-minimal" style={ getWidth((10) - 10) }>
+                <div class="progress-bar progress-bar-minimal" style={ getWidth((0)) }>
                     <div class="progress-under">
-                        10%
+                        {allocated}%
                     </div>
                 </div>
+                <div class="progress-bar progress-bar-warning" style={ getWidth(overused) }>
+                    Used
+                </div>
             </div>
-            {state.queue_metrics}
-            <div class="metrics">
+            <div class="metrics-overview" if={queue_metrics && this.state.expanded}>
+                <h6><strong>Metrics</strong></h6>
                 <table>
                     <thead>
                     <tr>
@@ -24,41 +27,79 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr if={!!state.queue_metrics["allocated_memory_bytes"]}>
+
+                    <tr if={"allocated_memory_bytes" in queue_metrics}>
                         <td>Allocated memory</td>
-                        <td>{state.queue_metrics["allocated_memory_bytes"]}</td>
+                        <td>{this.bytesToSize(queue_metrics["allocated_memory_bytes"])}</td>
                     </tr>
-                    <tr if={!!state.queue_metrics["allocated_milli_cpu"]}>
+                    <tr if={"allocated_milli_cpu" in queue_metrics}>
                         <td>Allocated cpus</td>
-                        <td>{state.queue_metrics["allocated_milli_cpu"]}</td>
+                        <td>{queue_metrics["allocated_milli_cpu"]}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="jobs-overview" if={queue_jobs.length !== 0  && this.state.expanded}>
+                <h6><strong>Jobs</strong></h6>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Pending</th>
+                        <th>Running</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr each={job in queue_jobs} class="job-name">
+                        <td>{job.name}</td>
+                        <td>{job.status.state.phase}</td>
+                        <td>{job.status.running}</td>
+                        <td>{job.status.pending}</td>
                     </tr>
                     </tbody>
                 </table>
             </div>
         </div>
-        <div if={props.item.kind == "Job"} class="job-name">
-            { props.item.name } - { props.item.status.state.phase } - running { props.item.status.running } - pending { props.item.status.pending }
-        </div>
-        <parent_queue if={this.state.expanded} queues={props.queues} parent={props.item.fullname} metrics={props.metrics} />
+
+        <parent_queue if={this.state.expanded} queues={props.queues} parent={props.item.fullname} metrics={props.metrics} jobs={props.jobs} />
     </li>
     <style>
-        .metrics {
+        .metrics-overview {
+            margin-left: 72px;
+        }
+        .jobs-overview {
             margin-left: 72px;
         }
     </style>
     <script>
         export default {
             onBeforeMount(props, state) {
-                state = {
+                this.state = {
                     expanded: false,
-                    queue_metrics: props.metrics[props.item.name]
                 }
+                this.setValues(props, state)
+            },
+            onBeforeUpdate(props, state) {
+                this.setValues(props, state)
+            },
+            setValues(props, state) {
+                this.queue_metrics = props.metrics[props.item.fullname]
+                this.queue_jobs = props.jobs.filter((job) => job.parent == props.item.fullname)
+                this.allocated = Math.floor(Math.random() * 50)
+                this.overused = Math.floor(Math.random() * 50)
             },
             getWidth(percentage) {
                 return "width: " + percentage + "%"
             },
             expand() {
                 this.update({expanded: !this.state.expanded })
+            },
+            bytesToSize(bytes) {
+                var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+                if (bytes == 0) return '0 Byte';
+                var i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+                return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
             }
         }
     </script>

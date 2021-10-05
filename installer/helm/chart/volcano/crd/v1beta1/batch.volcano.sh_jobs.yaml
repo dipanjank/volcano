@@ -6898,6 +6898,11 @@ spec:
               description: The resources that controlled by this job, e.g. Service,
                 ConfigMap
               type: object
+            counter:
+              description: The unique id that is incremented for each new pod that
+                is allocated
+              format: int32
+              type: integer
             failed:
               description: The number of pods which reached phase Failed.
               format: int32
