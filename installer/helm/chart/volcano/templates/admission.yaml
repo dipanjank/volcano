@@ -4,6 +4,14 @@ metadata:
   name: {{ .Release.Name }}-admission
   namespace: {{ .Release.Namespace }}
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-queue-weights-configmap
+  namespace: {{ .Release.Namespace }}
+data:
+  {{- (.Files.Glob .Values.basic.dynamic_queue_weights).AsConfig | nindent 2}}
+---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -27,7 +35,7 @@ rules:
     verbs: ["create", "get", "patch"]
   - apiGroups: ["scheduling.incubator.k8s.io", "scheduling.volcano.sh"]
     resources: ["queues"]
-    verbs: ["get", "list"]
+    verbs: ["create", "get", "list"]
   - apiGroups: [""]
     resources: ["services"]
     verbs: ["get"]
@@ -79,6 +87,7 @@ spec:
             - --ca-cert-file=/admission.local.config/certificates/ca.crt
             - --webhook-namespace={{ .Release.Namespace }}
             - --webhook-service-name={{ .Release.Name }}-admission-service
+            - --queue-config-file=/admission.local.config/queueweights/{{base .Values.basic.dynamic_queue_weights}}
             - --logtostderr
             - --port={{.Values.basic.admission_port}}
             - -v=4
@@ -90,12 +99,16 @@ spec:
             - mountPath: /admission.local.config/certificates
               name: admission-certs
               readOnly: true
+            - mountPath: /admission.local.config/queueweights
+                name: admission-queue-weights
       volumes:
         - name: admission-certs
           secret:
             defaultMode: 420
             secretName: {{.Values.basic.admission_secret_name}}
-
+        - name: admission-queue-weights
+            configMap:
+              name: {{ .Release.Name }}-queue-weights-configmap
 ---
 apiVersion: v1
 kind: Service
