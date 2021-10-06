@@ -1,10 +1,10 @@
 basic:
-  image_tag_version: "1.3.0"
+  image_tag_version: "v1.3.0"
   controller_image_name: "dipanjank/spark-volcano-controller-manager"
   scheduler_image_name: "dipanjank/spark-volcano-scheduler"
   admission_image_name: "dipanjank/spark-volcano-webhook-manager"
   admission_secret_name: "volcano-admission-secret"
-  scheduler_config_file: "config/volcano-scheduler.conf"
+  scheduler_config_file: "config/volcano-scheduler-dap.conf"
   dynamic_queue_weights: "config/dynamic-queue-weights.conf"
   image_pull_secret: ""
   admission_port: 8443

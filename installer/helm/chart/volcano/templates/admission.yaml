@@ -100,15 +100,15 @@ spec:
               name: admission-certs
               readOnly: true
             - mountPath: /admission.local.config/queueweights
-                name: admission-queue-weights
+              name: admission-queue-weights
       volumes:
         - name: admission-certs
           secret:
             defaultMode: 420
             secretName: {{.Values.basic.admission_secret_name}}
         - name: admission-queue-weights
-            configMap:
-              name: {{ .Release.Name }}-queue-weights-configmap
+          configMap:
+            name: {{ .Release.Name }}-queue-weights-configmap
 ---
 apiVersion: v1
 kind: Service
