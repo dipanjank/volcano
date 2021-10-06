@@ -5,16 +5,16 @@
               { props.item.name }
             </span>
             <div class="progress progress-capacity">
-                <div class="progress-bar progress-bar-success" style={ getWidth(allocated) }>
+                <div class="progress-bar progress-bar-success" style={ getWidth(10) }>
                     Used
                 </div>
                 <div class="progress-bar progress-bar-minimal" style={ getWidth((0)) }>
                     <div class="progress-under">
-                        {allocated}%
+                        {10}%
                     </div>
                 </div>
-                <div class="progress-bar progress-bar-warning" style={ getWidth(overused) }>
-                    Used
+                <div class="progress-bar progress-bar-warning" style={ getWidth(10) }>
+                    Overused
                 </div>
             </div>
             <div class="metrics-overview" if={queue_metrics && this.state.expanded}>

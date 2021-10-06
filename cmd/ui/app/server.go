@@ -21,8 +21,10 @@ import (
 	"embed"
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/Masterminds/sprig"
+	"github.com/jahnestacado/tlru"
 	prometheusAPI "github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
@@ -49,11 +51,14 @@ var (
 	prometheusCtx context.Context
 	//go:embed templates/index.html
 	index string
+	cache tlru.TLRU
+	pageCache tlru.Entry
+	ttl = 2 * time.Second
 )
-
 
 // Run start the service of admission controller.
 func Run(config *options.Config) error {
+
 	if config.PrintVersion {
 		version.PrintVersionAndExit()
 		return nil
@@ -81,8 +86,45 @@ func Run(config *options.Config) error {
 	//	return fmt.Errorf("unable to read cacert file (%s): %v", config.CaCertFile, err)
 	//}
 
+
 	vClient = getVolcanoClient(restConfig)
 	kubeClient = getKubeClient(restConfig)
+
+	evictionChannel := make(chan tlru.EvictedEntry, 0)
+	tlruConfig := tlru.Config{
+		Size:            2,
+		TTL:             ttl,
+		EvictionPolicy:  tlru.LRA,
+		EvictionChannel: &evictionChannel,
+	}
+
+	cache = tlru.New(tlruConfig)
+
+	go func() {
+		fmt.Printf("go routine")
+		for {
+			evictedEntry := <-evictionChannel
+			if evictedEntry.Reason.String() != "Expired" {
+				fmt.Printf("Entry with key: '%s' has been evicted with reason: %s\n", evictedEntry.Key, evictedEntry.Reason.String())
+			}
+		}
+	}()
+
+	// set initial metrics
+	page, err := getMetrics()
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil
+	}
+	pageCache = tlru.Entry{Key: "data", Value: page}
+
+	err = cache.Set(pageCache)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil
+	}
 
 	http.HandleFunc("/", pageHandler)
 	http.HandleFunc("/metrics.json", dataHandler)
@@ -127,23 +169,37 @@ func getMetrics() (*Page, error) {
 	return &Page{Queues: queues, Jobs: jobs, Metrics: metrics}, nil
 }
 
-func dataHandler(w http.ResponseWriter, r *http.Request) {
-	page, err := getMetrics()
+func getCachedMetrics() (*Page, error) {
+	pageEntry := cache.Get(pageCache.Key)
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	var page *Page
+
+	if pageEntry == nil {
+		fmt.Printf("retrieve metrics")
+		page, err := getMetrics()
+
+		if err != nil {
+			return nil, err
+		}
+		pageCache = tlru.Entry{Key: "data", Value: page}
+
+		err = cache.Set(pageCache)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		var okay bool
+		page, okay = pageEntry.Value.(*Page)
+		if !okay {
+			return nil, errors.New("type conversion error")
+		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	encoder := json.NewEncoder(w)
-	encoder.SetEscapeHTML(false)
-	encoder.Encode(page)
+	return page, nil
 }
-
 func pageHandler(w http.ResponseWriter, r *http.Request) {
-	page, err := getMetrics()
+
+	page, err := getCachedMetrics()
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -165,4 +221,19 @@ func pageHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func dataHandler(w http.ResponseWriter, r *http.Request) {
+	page, err := getCachedMetrics()
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	encoder := json.NewEncoder(w)
+	encoder.SetEscapeHTML(false)
+	encoder.Encode(page)
 }
