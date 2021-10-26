@@ -17,26 +17,28 @@ limitations under the License.
 package pods
 
 import (
-	"context"
 	"fmt"
-	"strconv"
-
-	"strings"
-
 	"k8s.io/api/admission/v1beta1"
 	whv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/klog"
-
+	"strconv"
+	"strings"
 	"volcano.sh/apis/pkg/apis/helpers"
 	vcv1beta1 "volcano.sh/apis/pkg/apis/scheduling/v1beta1"
 	"volcano.sh/volcano/pkg/webhooks/router"
 	"volcano.sh/volcano/pkg/webhooks/schema"
 	"volcano.sh/volcano/pkg/webhooks/util"
 )
+
+import (
+	"context"
+	"k8s.io/klog"
+)
+
+const ScheduledByLabel = "volcano.sh/scheduled-by-volcano"
 
 func init() {
 	router.RegisterAdmission(service)
@@ -60,6 +62,9 @@ var service = &router.AdmissionService{
 						Resources:   []string{"pods"},
 					},
 				},
+			},
+			ObjectSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{ScheduledByLabel: "true"},
 			},
 		}},
 	},
