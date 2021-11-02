@@ -199,14 +199,14 @@ func (drf *drfPlugin) compareQueues(root *hierarchicalNode, lqueue *api.QueueInf
 			return 1
 		}
 		if lnode.attr.share/lnode.weight == rnode.attr.share/rnode.weight {
-			klog.V(4).Infof("Compare queues - equal weighted share at depth <%i> lnode <%v> rnode <%v>",
+			klog.V(4).Infof("Compare queues - equal weighted share at depth <%d> lnode <%v> rnode <%v>",
 				depth, lnode, rnode)
 			if i < depth-1 {
 				lnode = lnode.children[lpaths[i+1]]
 				rnode = rnode.children[rpaths[i+1]]
 			}
 		} else {
-			klog.V(4).Infof("Compare queues - difference of weighted share at depth <%i> lnode <%v> rnode <%v>",
+			klog.V(4).Infof("Compare queues - difference of weighted share at depth <%d> lnode <%v> rnode <%v>",
 				depth, lnode, rnode)
 			return lnode.attr.share/lnode.weight - rnode.attr.share/rnode.weight
 		}
