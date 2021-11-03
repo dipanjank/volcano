@@ -143,13 +143,13 @@ func patchDefaultScheduler(job *v1alpha1.Job) *patchOperation {
 	return nil
 }
 
-func patchDefaultMaxRetry(job *v1alpha1.Job) *patchOperation {
-	// Add default maxRetry if maxRetry is zero.
-	if job.Spec.MaxRetry == 0 {
-		return &patchOperation{Op: "add", Path: "/spec/maxRetry", Value: DefaultMaxRetry}
-	}
-	return nil
-}
+//func patchDefaultMaxRetry(job *v1alpha1.Job) *patchOperation {
+//	// Add default maxRetry if maxRetry is zero.
+//	if job.Spec.MaxRetry == 0 {
+//		return &patchOperation{Op: "add", Path: "/spec/maxRetry", Value: DefaultMaxRetry}
+//	}
+//	return nil
+//}
 
 func patchDefaultMinAvailable(job *v1alpha1.Job) *patchOperation {
 	// Add default minAvailable if minAvailable is zero.
