@@ -112,10 +112,10 @@ func createPatch(job *v1alpha1.Job) ([]byte, error) {
 	if pathScheduler != nil {
 		patch = append(patch, *pathScheduler)
 	}
-	pathMaxRetry := patchDefaultMaxRetry(job)
-	if pathMaxRetry != nil {
-		patch = append(patch, *pathMaxRetry)
-	}
+	//pathMaxRetry := patchDefaultMaxRetry(job)
+	//if pathMaxRetry != nil {
+	//	patch = append(patch, *pathMaxRetry)
+	//}
 	pathSpec := mutateSpec(job.Spec.Tasks, "/spec/tasks")
 	if pathSpec != nil {
 		patch = append(patch, *pathSpec)
