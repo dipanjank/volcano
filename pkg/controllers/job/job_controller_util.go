@@ -18,7 +18,6 @@ package job
 
 import (
 	"fmt"
-	"volcano.sh/volcano/pkg/scheduler/api"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,7 +37,7 @@ func MakePodName(jobName string, taskName string, index int) string {
 	return fmt.Sprintf(jobhelpers.PodNameFmt, jobName, taskName, index)
 }
 
-func createJobPod(job *batch.Job, template *v1.PodTemplateSpec, ix int, envVarOverrides map[string]string) *v1.Pod {
+func createJobPod(job *batch.Job, template *v1.PodTemplateSpec, ix int) *v1.Pod {
 	templateCopy := template.DeepCopy()
 
 	pod := &v1.Pod{
@@ -108,9 +107,6 @@ func createJobPod(job *batch.Job, template *v1.PodTemplateSpec, ix int, envVarOv
 		if value, found := job.Annotations[schedulingv2.PodPreemptable]; found {
 			pod.Annotations[schedulingv2.PodPreemptable] = value
 		}
-		if value, found := job.Annotations[api.PodReclaimable]; found {
-			pod.Annotations[api.PodReclaimable] = value
-		}
 		if value, found := job.Annotations[schedulingv2.RevocableZone]; found {
 			pod.Annotations[schedulingv2.RevocableZone] = value
 		}
@@ -133,9 +129,6 @@ func createJobPod(job *batch.Job, template *v1.PodTemplateSpec, ix int, envVarOv
 	if len(job.Labels) > 0 {
 		if value, found := job.Labels[schedulingv2.PodPreemptable]; found {
 			pod.Labels[schedulingv2.PodPreemptable] = value
-		}
-		if value, found := job.Labels[api.PodReclaimable]; found {
-			pod.Labels[api.PodReclaimable] = value
 		}
 	}
 
