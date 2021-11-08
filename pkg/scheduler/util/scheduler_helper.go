@@ -24,6 +24,7 @@ import (
 	"sort"
 	"sync"
 	"sync/atomic"
+	"volcano.sh/volcano/pkg/webhooks/router"
 
 	"k8s.io/klog"
 
@@ -226,10 +227,12 @@ func SelectBestNode(nodeScores map[float64][]*api.NodeInfo) *api.NodeInfo {
 }
 
 // GetNodeList returns values of the map 'nodes'
-func GetNodeList(nodes map[string]*api.NodeInfo) []*api.NodeInfo {
+func GetNodeList(nodes map[string]*api.NodeInfo, selectors router.AdditionalSelectorsConfiguration) []*api.NodeInfo {
 	result := make([]*api.NodeInfo, 0, len(nodes))
 	for _, v := range nodes {
-		result = append(result, v)
+		if value, exit := v.Node.Labels[selectors.NodeSelector.Name]; exit && (value == selectors.NodeSelector.Value) {
+			result = append(result, v)
+		}
 	}
 	return result
 }

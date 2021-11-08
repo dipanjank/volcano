@@ -1,0 +1,10 @@
+selectorPrefix: volcano.sh
+namespaceSelector:
+  name: dedicatedNamespace
+  value: default
+nodeSelector:
+  name: dedicatedNode
+  value: volcano
+schedulerSelector:
+  name: scheduledBy
+  value: volcano

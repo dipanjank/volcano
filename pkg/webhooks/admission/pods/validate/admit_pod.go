@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package pods
+package validate
 
 import (
 	"context"
@@ -61,13 +61,20 @@ var service = &router.AdmissionService{
 					},
 				},
 			},
+			ObjectSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{fmt.Sprintf("%s/%s", selectorPrefix, schedulerSelectorName): schedulerSelectorValue},
+			},
 		}},
 	},
 }
 
 var config = &router.AdmissionServiceConfig{}
 
-// AdmitPods is to admit pods and return response.
+var selectorPrefix = config.AdditionalSelectors.SelectorPrefix
+var schedulerSelectorName = config.AdditionalSelectors.SchedulerSelector.Name
+var schedulerSelectorValue = config.AdditionalSelectors.SchedulerSelector.Value
+
+// AdmitPods is to validate pods and return response.
 func AdmitPods(ar v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 
 	klog.V(3).Infof("admitting pods -- %s", ar.Request.Operation)

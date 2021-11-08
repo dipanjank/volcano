@@ -27,14 +27,6 @@ import (
 //The AdmitFunc returns response.
 type AdmitFunc func(v1beta1.AdmissionReview) *v1beta1.AdmissionResponse
 
-type AdmissionServiceConfig struct {
-	SchedulerName string
-	KubeClient    kubernetes.Interface
-	VolcanoClient versioned.Interface
-	Recorder      record.EventRecorder
-	QueueConfig   map[string]int32
-}
-
 type AdmissionService struct {
 	Path    string
 	Func    AdmitFunc
@@ -44,4 +36,25 @@ type AdmissionService struct {
 	MutatingConfig   *whv1beta1.MutatingWebhookConfiguration
 
 	Config *AdmissionServiceConfig
+}
+
+type AdmissionServiceConfig struct {
+	SchedulerName string
+	KubeClient    kubernetes.Interface
+	VolcanoClient versioned.Interface
+	Recorder      record.EventRecorder
+	QueueConfig   map[string]int32
+	AdditionalSelectors AdditionalSelectorsConfiguration
+}
+
+type AdditionalSelectorsConfiguration struct {
+	SelectorPrefix string `yaml:"selectorPrefix"`
+	NamespaceSector Selector `yaml:"namespaceSector"`
+	NodeSelector Selector `yaml:"nodeSelector"`
+	SchedulerSelector Selector `yaml:"schedulerSelector"`
+}
+
+type Selector struct {
+	Name string `yaml:"name"`
+	Value string `yaml:"value"`
 }

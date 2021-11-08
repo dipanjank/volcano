@@ -19,6 +19,7 @@ package framework
 import (
 	"fmt"
 	"strings"
+	"volcano.sh/volcano/pkg/webhooks/router"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,7 +53,8 @@ type Session struct {
 	NamespaceInfo  map[api.NamespaceName]*api.NamespaceInfo
 
 	Tiers          []conf.Tier
-	Configurations []conf.Configuration
+	Configurations      []conf.Configuration
+	AdditionalSelectors router.AdditionalSelectorsConfiguration
 
 	plugins           map[string]Plugin
 	eventHandlers     []*EventHandler
