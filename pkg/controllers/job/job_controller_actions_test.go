@@ -20,6 +20,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"sort"
+	"strconv"
 	"testing"
 
 	v1 "k8s.io/api/core/v1"
@@ -303,6 +306,19 @@ func TestSyncJobFunc(t *testing.T) {
 			}
 			if testcase.TotalNumPods != len(podList.Items) {
 				t.Errorf("Expected Total number of pods to be same as podlist count: Expected: %d, Got: %d in case: %d", testcase.TotalNumPods, len(podList.Items), i)
+			}
+
+			var podIds []int
+			for _, pod := range podList.Items {
+				id, _ := strconv.Atoi(pod.Labels["VK_POD_ID"])
+				podIds = append(podIds, id)
+			}
+
+			// pods can appear out of order, so we need to sort it before comparing with expected
+			sort.Ints(podIds)
+
+			if !reflect.DeepEqual(podIds, []int{0, 1, 3, 4, 5, 6}) {
+				t.Error("Error when incrementing the counter of the jobs")
 			}
 		})
 	}

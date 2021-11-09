@@ -172,7 +172,6 @@ func (drf *drfPlugin) NamespaceOrderEnabled(ssn *framework.Session) bool {
 
 func (drf *drfPlugin) compareQueues(root *hierarchicalNode, lqueue *api.QueueInfo, rqueue *api.QueueInfo, reclaimer *api.TaskInfo, preemptee *api.TaskInfo) float64 {
 	lnode := root
-
 	lpaths := strings.Split(lqueue.Hierarchy, "/")
 	rnode := root
 	rpaths := strings.Split(rqueue.Hierarchy, "/")

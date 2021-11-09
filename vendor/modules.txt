@@ -164,6 +164,7 @@ go.etcd.io/etcd/raft/raftpb
 go.etcd.io/etcd/raft/tracker
 go.etcd.io/etcd/version
 # go.uber.org/atomic v1.4.0
+## explicit
 go.uber.org/atomic
 # go.uber.org/multierr v1.1.0
 go.uber.org/multierr
