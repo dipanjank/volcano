@@ -191,7 +191,7 @@ func (drf *drfPlugin) compareQueues(root *hierarchicalNode, lqueue *api.QueueInf
 	for i := 0; i < depth; i++ {
 		// Saturated nodes have minumun prioirty,
 		// so that demanding nodes will be poped first.
-		klog.V(4).Infof("Compare queues - depth <%d> lnode <%v> rnode <%v>", depth, lnode, rnode)
+		klog.V(4).Infof("Compare queues - depth <%d> lnode <%v> rnode <%v>", i, lnode, rnode)
 		if !lnode.saturated && rnode.saturated {
 			return -1
 		}
@@ -200,14 +200,14 @@ func (drf *drfPlugin) compareQueues(root *hierarchicalNode, lqueue *api.QueueInf
 		}
 		if lnode.attr.share/lnode.weight == rnode.attr.share/rnode.weight {
 			klog.V(4).Infof("Compare queues - equal weighted share at depth <%d> lnode <%v> rnode <%v>",
-				depth, lnode, rnode)
+				i, lnode, rnode)
 			if i < depth-1 {
 				lnode = lnode.children[lpaths[i+1]]
 				rnode = rnode.children[rpaths[i+1]]
 			}
 		} else {
 			klog.V(4).Infof("Compare queues - difference of weighted share at depth <%d> lnode <%v> rnode <%v>",
-				depth, lnode, rnode)
+				i, lnode, rnode)
 			return lnode.attr.share/lnode.weight - rnode.attr.share/rnode.weight
 		}
 	}

@@ -38,8 +38,6 @@ import (
 	"k8s.io/klog"
 )
 
-const ScheduledByLabel = "volcano.sh/scheduled-by-volcano"
-
 func init() {
 	router.RegisterAdmission(service)
 }
@@ -62,9 +60,6 @@ var service = &router.AdmissionService{
 						Resources:   []string{"pods"},
 					},
 				},
-			},
-			ObjectSelector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{ScheduledByLabel: "true"},
 			},
 		}},
 	},
