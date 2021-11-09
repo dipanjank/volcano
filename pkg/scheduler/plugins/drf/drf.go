@@ -35,6 +35,34 @@ const PluginName = "drf"
 
 var shareDelta = 0.000001
 
+// StringSet implements the Set ADT of strings backed by a map
+type StringSet struct {
+	set map[string]bool
+}
+
+func NewStringSet() *StringSet {
+	return &StringSet{make(map[string]bool)}
+}
+
+// Add string s to this StringSet. Return false if it existed already, otherwise true
+func (set *StringSet) Add(s string) bool {
+	_, found := set.set[s]
+	set.set[s] = true
+
+	return !found
+}
+
+// Contains return true if string s exists in this StringSet, otherwise false
+func (set *StringSet) Contains(s string) bool {
+	_, found := set.set[s]
+	return found
+}
+
+// Remove string s from this StringSet
+func (set *StringSet) Remove(s string) {
+	delete(set.set, s)
+}
+
 // hierarchicalNode represents the node hierarchy
 // and the corresponding weight and drf attribute
 type hierarchicalNode struct {
@@ -120,6 +148,9 @@ type drfPlugin struct {
 
 	// Arguments given for the plugin
 	pluginArguments framework.Arguments
+
+	// overUsedQueues
+	overUsedQueues *StringSet
 }
 
 // New return drf plugin
@@ -137,6 +168,7 @@ func New(arguments framework.Arguments) framework.Plugin {
 			children:  map[string]*hierarchicalNode{},
 		},
 		pluginArguments: arguments,
+		overUsedQueues:  NewStringSet(),
 	}
 }
 
@@ -197,6 +229,7 @@ func (drf *drfPlugin) compareQueues(root *hierarchicalNode, lqueue *api.QueueInf
 		if lnode.saturated && !rnode.saturated {
 			return 1
 		}
+
 		if lnode.attr.share/lnode.weight == rnode.attr.share/rnode.weight {
 			klog.V(4).Infof("Compare queues - equal weighted share at depth <%d> lnode <%v> rnode <%v>",
 				i, lnode, rnode)
@@ -213,7 +246,21 @@ func (drf *drfPlugin) compareQueues(root *hierarchicalNode, lqueue *api.QueueInf
 	return 0
 }
 
+func (drf *drfPlugin) CheckQueueOverUsed(obj interface{}) bool {
+	queue := obj.(*api.QueueInfo)
+
+	overused := drf.overUsedQueues.Contains(queue.Name)
+	metrics.UpdateQueueOverused(queue.Name, overused)
+	if overused {
+		klog.V(3).Infof("Queue <%v> is overused", queue.Name)
+	}
+	return overused
+}
+
 func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
+	// Make sure overuse check is available to the session
+	ssn.AddOverusedFn(drf.Name(), drf.CheckQueueOverUsed)
+
 	// Prepare scheduling data for this session.
 
 	for _, n := range ssn.Nodes {
@@ -422,6 +469,25 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 
 				if ret < 0 {
 					victims = append(victims, preemptee)
+					// Add the queue name to the overused queue list
+					drf.overUsedQueues.Add(rqueue.Name)
+					klog.V(3).Infof("Add queue <%s> to overused list", rqueue.Name)
+				} else {
+					if drf.overUsedQueues.Contains(rqueue.Name) {
+						// Check if this queue is still overused and if not, remove it from the overused list
+						// 1. Find the node in the hierarchy for rqueue.Name
+						childNode := drf.getChildByName(drf.hierarchicalRoot, rqueue.Name)
+						if childNode != nil {
+							// 2. Calculate the guaranteed share for this node
+							guaranteedShare := drf.calcGuaranteedShare(childNode)
+
+							// 3. If own share <= guaranteedShare, it is no longer overused
+							if childNode.attr.share <= guaranteedShare {
+								klog.V(4).Infof("Remove queue <%s> from overused list", rqueue.Name)
+								drf.overUsedQueues.Remove(rqueue.Name)
+							}
+						}
+					}
 				}
 
 				if ret > shareDelta {
@@ -649,11 +715,11 @@ func (drf *drfPlugin) updateHierarchicalShare(node *hierarchicalNode,
 		node.attr.dominantResource, node.attr.share = drf.calculateShare(
 			node.attr.allocated, drf.totalResource)
 		node.saturated = saturated
+
 		klog.V(4).Infof("Update hierarchical node <%s>, requested <%v>, share <%f>, dominant resource <%s>, allocated <%v>, demanding <%v>, saturated: <%t>",
 			node.hierarchy, node.request, node.attr.share, node.attr.dominantResource,
 			node.attr.allocated, demandingResources, node.saturated)
 	}
-
 }
 
 func (drf *drfPlugin) UpdateHierarchicalShare(caller string, root *hierarchicalNode, totalAllocated *api.Resource, job *api.JobInfo, attr *drfAttr, hierarchy, hierarchicalWeights string) {
@@ -678,6 +744,48 @@ func (drf *drfPlugin) updateJobShare(jobNs, jobName string, attr *drfAttr) {
 
 func (drf *drfPlugin) updateShare(attr *drfAttr) {
 	attr.dominantResource, attr.share = drf.calculateShare(attr.allocated, drf.totalResource)
+}
+
+// getChildByName return a child node with name nodeName in the tree rooted at currentNode,
+//or nil if it cannot be found
+func (drf *drfPlugin) getChildByName(currentNode *hierarchicalNode, nodeName string) *hierarchicalNode {
+	if nodeName == currentNode.hierarchy {
+		return currentNode
+	} else if currentNode.children == nil {
+		return nil
+	}
+
+	var res *hierarchicalNode
+
+	for _, childNode := range currentNode.children {
+		res = drf.getChildByName(childNode, nodeName)
+		if res != nil {
+			break
+		}
+	}
+	return res
+}
+
+// calcGuaranteedShare calculate the guaranteed share of hierarchicalNode node
+// this is calculated as (this node's own weight / sum of demanding siblings' weights) * parent share
+// see https://people.eecs.berkeley.edu/~alig/papers/h-drf.pdf, "Hierarchical Share Guarantee"
+func (drf *drfPlugin) calcGuaranteedShare(node *hierarchicalNode) float64 {
+	gs := float64(0)
+	ownWeight := node.weight
+	totalSiblingWeights := float64(0)
+
+	if node.parent != nil {
+		for _, siblingNode := range node.parent.children {
+			if siblingNode.attr.share > 0 {
+				totalSiblingWeights += siblingNode.weight
+			}
+		}
+		if totalSiblingWeights > 0 {
+			parentShare := node.parent.attr.share
+			gs = (ownWeight / totalSiblingWeights) * parentShare
+		}
+	}
+	return gs
 }
 
 func (drf *drfPlugin) calculateShare(allocated, totalResource *api.Resource) (string, float64) {

@@ -38,7 +38,7 @@ import (
 
 func TestReclaimWithHDRF(t *testing.T) {
 	klog.InitFlags(nil)
-	flag.Set("v", "4")
+	flag.Set("v", "3")
 	flag.Set("alsologtostderr", "true")
 
 	framework.RegisterPluginBuilder("drf", drf.New)
