@@ -33,17 +33,17 @@ const (
 
 // Config admission-controller server config.
 type Config struct {
-	KubeClientOptions kube.ClientOptions
-	CertFile          string
-	KeyFile           string
-	CaCertFile        string
-	Port              int
-	PrintVersion      bool
-	DashboardName            string
-	DashboardNamespace       string
-	SchedulerName     string
-	DashboardURL             string
-	PrometheusURL     string
+	KubeClientOptions  kube.ClientOptions
+	CertFile           string
+	KeyFile            string
+	CaCertFile         string
+	Port               int
+	PrintVersion       bool
+	DashboardName      string
+	DashboardNamespace string
+	SchedulerName      string
+	DashboardURL       string
+	PrometheusURL      string
 }
 
 // NewConfig create new config.
