@@ -480,10 +480,11 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 						if childNode != nil {
 							// 2. Calculate the guaranteed share for this node
 							guaranteedShare := drf.calcGuaranteedShare(childNode)
-
+							klog.V(3).Infof("For queue <%s>, guaranteed share <%f>, current share <%f>",
+								rqueue.Name, guaranteedShare, childNode.attr.share)
 							// 3. If own share <= guaranteedShare, it is no longer overused
 							if childNode.attr.share <= guaranteedShare {
-								klog.V(4).Infof("Remove queue <%s> from overused list", rqueue.Name)
+								klog.V(3).Infof("Remove queue <%s> from overused list", rqueue.Name)
 								drf.overUsedQueues.Remove(rqueue.Name)
 							}
 						}
