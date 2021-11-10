@@ -3,6 +3,7 @@ basic:
   controller_image_name: "dipanjank/spark-volcano-controller-manager"
   scheduler_image_name: "dipanjank/spark-volcano-scheduler"
   admission_image_name: "dipanjank/spark-volcano-webhook-manager"
+  dashboard_image_name: "dipanjank/spark-volcano-dashboard"
   admission_secret_name: "volcano-admission-secret"
   scheduler_config_file: "config/volcano-scheduler-dap.conf"
   dynamic_queue_weights: "config/dynamic-queue-weights.conf"
