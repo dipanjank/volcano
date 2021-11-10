@@ -1,14 +1,21 @@
 module volcano.sh/volcano
 
-go 1.14
+go 1.16
 
 require (
+	github.com/Masterminds/goutils v1.1.1 // indirect
+	github.com/Masterminds/semver v1.5.0 // indirect
+	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/hashicorp/go-multierror v1.0.0
+	github.com/huandu/xstrings v1.3.2 // indirect
+	github.com/jahnestacado/tlru v0.0.0-20200730090107-e1ec5c96073e
+	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.7.0
 	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/common v0.10.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
@@ -23,7 +30,6 @@ require (
 	k8s.io/kubernetes v1.19.6
 	sigs.k8s.io/yaml v1.2.0
 	volcano.sh/apis v0.0.0-20210518032656-21e2239e42bc
-	go.uber.org/atomic v1.4.0
 )
 
 replace (

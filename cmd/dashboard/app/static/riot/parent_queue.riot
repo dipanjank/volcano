@@ -1,0 +1,20 @@
+<parent_queue>
+    <ul>
+        <child_queue each={ item in childs } item={item} queues={props.queues} metrics={props.metrics} jobs={props.jobs} />
+    </ul>
+    <script>
+        export default {
+            onBeforeMount(props, state) {
+                this.setValues(props, state)
+            },
+            onBeforeUpdate(props, state) {
+                this.setValues(props, state)
+            },
+            setValues(props, state) {
+                this.childs = (props.parent)
+                    ? props.queues.filter((queue) => queue.parent === props.parent)
+                    : props.queues.filter((queue) => queue.name === "root")
+            }
+        }
+    </script>
+</parent_queue>

@@ -54,6 +54,22 @@ var (
 		}, []string{"queue_name"},
 	)
 
+	queueTotalMemory = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Subsystem: VolcanoNamespace,
+			Name:      "queue_total_memory_bytes",
+			Help:      "Total memory for one queue",
+		}, []string{"queue_name"},
+	)
+
+	queueTotalMilliCPU = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Subsystem: VolcanoNamespace,
+			Name:      "queue_total_milli_cpu",
+			Help:      "Total CPU count for one queue",
+		}, []string{"queue_name"},
+	)
+
 	queueDeservedMilliCPU = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Subsystem: VolcanoNamespace,
@@ -70,6 +86,22 @@ var (
 		}, []string{"queue_name"},
 	)
 
+	queuePreemptibleMilliCPU = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Subsystem: VolcanoNamespace,
+			Name:      "queue_preemptible_milli_cpu",
+			Help:      "Preemptible CPU count for one queue",
+		}, []string{"queue_name"},
+	)
+
+	queuePreemptibleMemory = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Subsystem: VolcanoNamespace,
+			Name:      "queue_preemptible_memory_bytes",
+			Help:      "Preemptible memory for one queue",
+		}, []string{"queue_name"},
+	)
+
 	queueShare = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Subsystem: VolcanoNamespace,
@@ -78,11 +110,35 @@ var (
 		}, []string{"queue_name"},
 	)
 
+	queueDeservedShare = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Subsystem: VolcanoNamespace,
+			Name:      "queue_deserved_share",
+			Help:      "Rest share for one queue",
+		}, []string{"queue_name"},
+	)
+
 	queueWeight = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Subsystem: VolcanoNamespace,
 			Name:      "queue_weight",
 			Help:      "Weight for one queue",
+		}, []string{"queue_name"},
+	)
+
+	queueHierarchyWeight = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Subsystem: VolcanoNamespace,
+			Name:      "queue_hierarchy_weight",
+			Help:      "Hierarchy weight for one queue",
+		}, []string{"queue_name"},
+	)
+
+	queueTotalHierarchyWeights = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Subsystem: VolcanoNamespace,
+			Name:      "queue_total_hierarchy_weights",
+			Help:      "Total hierarchy weight for one queue",
 		}, []string{"queue_name"},
 	)
 
@@ -145,14 +201,41 @@ func UpdateQueueDeserved(queueName string, milliCPU, memory float64) {
 	queueDeservedMemory.WithLabelValues(queueName).Set(memory)
 }
 
+// UpdateQueueTotalAllocatable records the total deserved resources for one queue
+func UpdateQueueTotalAllocatable(queueName string, milliCPU, memory float64) {
+	queueTotalMilliCPU.WithLabelValues(queueName).Set(milliCPU)
+	queueTotalMemory.WithLabelValues(queueName).Set(memory)
+}
+
+// UpdateQueuePreemptible records deserved resources for one queue
+func UpdateQueuePreemptible(queueName string, milliCPU, memory float64) {
+	queuePreemptibleMilliCPU.WithLabelValues(queueName).Set(milliCPU)
+	queuePreemptibleMemory.WithLabelValues(queueName).Set(memory)
+}
+
 // UpdateQueueShare records share for one queue
 func UpdateQueueShare(queueName string, share float64) {
 	queueShare.WithLabelValues(queueName).Set(share)
 }
 
+// UpdateQueueDeservedShare records deserved share for one queue
+func UpdateQueueDeservedShare(queueName string, deservedShare float64) {
+	queueDeservedShare.WithLabelValues(queueName).Set(deservedShare)
+}
+
 // UpdateQueueWeight records weight for one queue
 func UpdateQueueWeight(queueName string, weight int32) {
 	queueWeight.WithLabelValues(queueName).Set(float64(weight))
+}
+
+// UpdateQueueHierarchyWeight records hierarchical weight for one queue used for the drf plugin
+func UpdateQueueHierarchyWeight(queueName string, weight float64) {
+	queueHierarchyWeight.WithLabelValues(queueName).Set(weight)
+}
+
+// UpdateQueueTotalHierarchyWeights records total hierarchical weights of the parent queue
+func UpdateQueueTotalHierarchyWeights(queueName string, total float64) {
+	queueTotalHierarchyWeights.WithLabelValues(queueName).Set(total)
 }
 
 // UpdateQueueOverused records if one queue is overused

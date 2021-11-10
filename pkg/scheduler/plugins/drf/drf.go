@@ -18,11 +18,12 @@ package drf
 
 import (
 	"fmt"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/klog"
 	"math"
 	"strconv"
 	"strings"
+
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/klog"
 
 	api "volcano.sh/volcano/pkg/scheduler/api"
 	"volcano.sh/volcano/pkg/scheduler/api/helpers"
@@ -35,6 +36,8 @@ const PluginName = "drf"
 
 var shareDelta = 0.000001
 
+var guard = make(chan int, 1)
+
 // hierarchicalNode represents the node hierarchy
 // and the corresponding weight and drf attribute
 type hierarchicalNode struct {
@@ -42,11 +45,12 @@ type hierarchicalNode struct {
 	attr   *drfAttr
 	// If the node is a leaf node,
 	// request represents the request of the job.
-	request   *api.Resource
-	weight    float64
-	saturated bool
-	hierarchy string
-	children  map[string]*hierarchicalNode
+	request      *api.Resource
+	weight       float64
+	totalWeights float64
+	saturated    bool
+	hierarchy    string
+	children     map[string]*hierarchicalNode
 }
 
 func (node *hierarchicalNode) Clone(parent *hierarchicalNode) *hierarchicalNode {
@@ -56,12 +60,14 @@ func (node *hierarchicalNode) Clone(parent *hierarchicalNode) *hierarchicalNode 
 			share:            node.attr.share,
 			dominantResource: node.attr.dominantResource,
 			allocated:        node.attr.allocated.Clone(),
+			mdr:              node.attr.mdr,
 		},
-		request:   node.request.Clone(),
-		weight:    node.weight,
-		saturated: node.saturated,
-		hierarchy: node.hierarchy,
-		children:  nil,
+		totalWeights: node.totalWeights,
+		request:      node.request.Clone(),
+		weight:       node.weight,
+		saturated:    node.saturated,
+		hierarchy:    node.hierarchy,
+		children:     nil,
 	}
 	if node.children != nil {
 		newNode.children = map[string]*hierarchicalNode{}
@@ -97,6 +103,7 @@ func resourceSaturated(allocated *api.Resource,
 type drfAttr struct {
 	share            float64
 	dominantResource string
+	mdr              float64
 	allocated        *api.Resource
 }
 
@@ -252,10 +259,21 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 		}
 		if hierarchyEnabled {
 			queue := ssn.Queues[job.Queue]
+
 			drf.totalAllocated.Add(attr.allocated)
 			drf.UpdateHierarchicalShare("OnSessionOpen",
 				drf.hierarchicalRoot, drf.totalAllocated, job, attr, queue.Hierarchy, queue.Weights)
 		}
+	}
+
+	if hierarchyEnabled {
+		guard <- 1
+		go func(hn *hierarchicalNode, totalResource *api.Resource) {
+			klog.V(4).Infof("Update metrics")
+			metrics.UpdateQueueTotalAllocatable("root", totalResource.MilliCPU, totalResource.Memory)
+			drf.UpdateHierarchicalQueueMetrics(hn)
+			<-guard
+		}(drf.hierarchicalRoot.Clone(nil), drf.totalResource.Clone())
 	}
 
 	preemptableFn := func(preemptor *api.TaskInfo, preemptees []*api.TaskInfo) []*api.TaskInfo {
@@ -545,6 +563,73 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 	})
 }
 
+func (drf *drfPlugin) UpdateQueueMetrics(queue *api.QueueInfo) {
+	metrics.UpdateQueuePodGroupInqueueCount(queue.Name, queue.Queue.Status.Inqueue)
+	metrics.UpdateQueuePodGroupPendingCount(queue.Name, queue.Queue.Status.Pending)
+	metrics.UpdateQueuePodGroupRunningCount(queue.Name, queue.Queue.Status.Running)
+	metrics.UpdateQueuePodGroupUnknownCount(queue.Name, queue.Queue.Status.Unknown)
+}
+
+func (drf *drfPlugin) GetParent(node *hierarchicalNode) []*hierarchicalNode {
+	var nodes []*hierarchicalNode
+
+	if node.parent != nil {
+		nodes = drf.GetParent(node.parent)
+	}
+
+	return append(nodes, node)
+}
+
+func (drf *drfPlugin) GetName(nodes []*hierarchicalNode) string {
+	nodenames := []string{}
+	for _, node := range nodes {
+		nodenames = append(nodenames, node.hierarchy)
+	}
+	return strings.Join(nodenames, "-")
+}
+
+func (drf *drfPlugin) UpdateHierarchicalQueueMetrics(node *hierarchicalNode) {
+	nodes := drf.GetParent(node)
+	nodeName := drf.GetName(nodes)
+
+	//drf.updateShare(node.attr)
+
+	if node.children != nil {
+		for _, child := range node.children {
+			drf.UpdateHierarchicalQueueMetrics(child)
+		}
+	}
+
+	deservedShare := float64(1)
+
+	for _, child := range nodes {
+		totalWeight := float64(1)
+		if child.parent != nil {
+			totalWeight = (*child.parent).totalWeights
+		}
+		deservedShare = deservedShare * (child.weight / totalWeight)
+	}
+
+	metrics.UpdateQueueDeservedShare(nodeName, deservedShare)
+
+	deserved := drf.totalResource.Clone().Scale(deservedShare)
+	metrics.UpdateQueueDeserved(nodeName, deserved.MilliCPU, deserved.Memory)
+
+	metrics.UpdateQueueAllocated(nodeName, node.attr.allocated.MilliCPU, node.attr.allocated.Memory)
+
+	overused := api.EmptyResource()
+	if deserved.LessEqual(node.attr.allocated) {
+		overused = deserved.MinDimensionResource(node.attr.allocated)
+	}
+
+	metrics.UpdateQueuePreemptible(nodeName, overused.MilliCPU, overused.Memory)
+	metrics.UpdateQueueOverused(nodeName, node.saturated)
+	metrics.UpdateQueueShare(nodeName, node.attr.share)
+
+	metrics.UpdateQueueHierarchyWeight(nodeName, node.weight)
+	metrics.UpdateQueueTotalHierarchyWeights(nodeName, node.totalWeights)
+}
+
 func (drf *drfPlugin) updateNamespaceShare(namespaceName string, attr *drfAttr) {
 	drf.updateShare(attr)
 	metrics.UpdateNamespaceShare(namespaceName, attr.share)
@@ -609,10 +694,14 @@ func (drf *drfPlugin) updateHierarchicalShare(node *hierarchicalNode,
 			demandingResources, node.saturated)
 	} else {
 		var mdr float64 = 1
+		var totalWeight float64 = 0
 		// get minimun dominant resource share
 		for _, child := range node.children {
 			drf.updateHierarchicalShare(child, demandingResources)
 			// skip empty child and saturated child
+
+			totalWeight += child.weight
+
 			if child.attr.share != 0 && !child.saturated {
 				_, resShare := drf.calculateShare(child.attr.allocated, drf.totalResource)
 				if resShare < mdr {
@@ -620,6 +709,9 @@ func (drf *drfPlugin) updateHierarchicalShare(node *hierarchicalNode,
 				}
 			}
 		}
+
+		node.attr.mdr = mdr
+		node.totalWeights = totalWeight
 
 		node.attr.allocated = api.EmptyResource()
 		saturated := true

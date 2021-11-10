@@ -452,7 +452,7 @@ func (ssn *Session) ScaleAllocatables(configurations []conf.Configuration) {
 		if strings.EqualFold(adjustConf.Name, "ScaleAllocatable") {
 			factors := adjustConf.Arguments
 			for _, nodeInfo := range ssn.Nodes {
-				nodeInfo.Allocatable.ScaleResource(factors)
+				nodeInfo.Idle.ScaleResource(factors)
 			}
 		}
 	}
