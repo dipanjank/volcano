@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package validate
+package pods
 
 import (
 	"context"
@@ -64,6 +64,9 @@ var service = &router.AdmissionService{
 			ObjectSelector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{fmt.Sprintf("%s/%s", selectorPrefix, schedulerSelectorName): schedulerSelectorValue},
 			},
+			NamespaceSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{fmt.Sprintf("%s/%s", selectorPrefix, namespaceSelectorName): namespaceSelectorValue},
+			},
 		}},
 	},
 }
@@ -73,6 +76,8 @@ var config = &router.AdmissionServiceConfig{}
 var selectorPrefix = config.AdditionalSelectors.SelectorPrefix
 var schedulerSelectorName = config.AdditionalSelectors.SchedulerSelector.Name
 var schedulerSelectorValue = config.AdditionalSelectors.SchedulerSelector.Value
+var namespaceSelectorName = config.AdditionalSelectors.NamespaceSector.Name
+var namespaceSelectorValue = config.AdditionalSelectors.NamespaceSector.Value
 
 // AdmitPods is to validate pods and return response.
 func AdmitPods(ar v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {

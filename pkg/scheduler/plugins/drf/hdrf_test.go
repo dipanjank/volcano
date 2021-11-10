@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"testing"
+	"volcano.sh/volcano/pkg/webhooks/router"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -252,7 +253,7 @@ func TestHDRF(t *testing.T) {
 					},
 				},
 			},
-		}, nil)
+		}, nil, router.AdditionalSelectorsConfiguration{})
 		defer framework.CloseSession(ssn)
 		allocateAction := allocate.New()
 

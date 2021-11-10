@@ -19,6 +19,7 @@ package preempt
 import (
 	"testing"
 	"time"
+	"volcano.sh/volcano/pkg/webhooks/router"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/scheduling/v1beta1"
@@ -295,7 +296,7 @@ func TestPreempt(t *testing.T) {
 						},
 					},
 				},
-			}, nil)
+			}, nil, router.AdditionalSelectorsConfiguration{})
 			defer framework.CloseSession(ssn)
 
 			preempt.Execute(ssn)
