@@ -21,7 +21,6 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
-	"volcano.sh/volcano/pkg/webhooks/router"
 
 	"github.com/fsnotify/fsnotify"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -33,7 +32,6 @@ import (
 	"volcano.sh/volcano/pkg/scheduler/conf"
 	"volcano.sh/volcano/pkg/scheduler/framework"
 	"volcano.sh/volcano/pkg/scheduler/metrics"
-	whapp "volcano.sh/volcano/cmd/webhook-manager/app"
 )
 
 // Scheduler watches for new unscheduled pods for volcano. It attempts to find
@@ -50,7 +48,6 @@ type Scheduler struct {
 	actions        []framework.Action
 	plugins        []conf.Tier
 	configurations []conf.Configuration
-	additionalSelectors router.AdditionalSelectorsConfiguration
 }
 
 // NewScheduler returns a scheduler
@@ -100,10 +97,9 @@ func (pc *Scheduler) runOnce() {
 	actions := pc.actions
 	plugins := pc.plugins
 	configurations := pc.configurations
-	additionalSelectors := pc.additionalSelectors
 	pc.mutex.Unlock()
 
-	ssn := framework.OpenSession(pc.cache, plugins, configurations, additionalSelectors)
+	ssn := framework.OpenSession(pc.cache, plugins, configurations)
 	defer framework.CloseSession(ssn)
 
 	for _, action := range actions {
@@ -144,7 +140,6 @@ func (pc *Scheduler) loadSchedulerConf() {
 	pc.actions = actions
 	pc.plugins = plugins
 	pc.configurations = configurations
-	pc.additionalSelectors = whapp.ReadAdditionalSelectorsConfig(pc.additionalSelectorsFile)
 	pc.mutex.Unlock()
 }
 

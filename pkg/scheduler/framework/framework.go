@@ -17,10 +17,8 @@ limitations under the License.
 package framework
 
 import (
-	"time"
-	"volcano.sh/volcano/pkg/webhooks/router"
-
 	"k8s.io/klog"
+	"time"
 
 	"volcano.sh/volcano/pkg/scheduler/cache"
 	"volcano.sh/volcano/pkg/scheduler/conf"
@@ -28,12 +26,11 @@ import (
 )
 
 // OpenSession start the session
-func OpenSession(cache cache.Cache, tiers []conf.Tier, configurations []conf.Configuration, additionalSelectors router.AdditionalSelectorsConfiguration) *Session {
+func OpenSession(cache cache.Cache, tiers []conf.Tier, configurations []conf.Configuration) *Session {
 	ssn := openSession(cache)
 	ssn.Tiers = tiers
 	ssn.Configurations = configurations
 	ssn.ScaleAllocatables(configurations)
-	ssn.AdditionalSelectors = additionalSelectors
 
 	for _, tier := range tiers {
 		for _, plugin := range tier.Plugins {

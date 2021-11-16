@@ -107,7 +107,6 @@ func (s *ServerOption) AddFlags(fs *pflag.FlagSet) {
 	fs.Int32Var(&s.PercentageOfNodesToFind, "percentage-nodes-to-find", defaultPercentageOfNodesToFind, "The percentage of nodes to find and score, if <=0 will be calcuated based on the cluster size")
 
 	fs.StringVar(&s.PluginsDir, "plugins-dir", defaultPluginsDir, "vc-scheduler will load custom plugins which are in this directory")
-	fs.StringVar(&s.AdditionalSelectorsConfigFile, "additional-selectors", "", "File containing custom selectors for Volcano.")
 }
 
 // CheckOptionOrDie check lock-object-namespace when LeaderElection is enabled.

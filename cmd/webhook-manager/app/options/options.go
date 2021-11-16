@@ -72,7 +72,6 @@ func (c *Config) AddFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&c.SchedulerName, "scheduler-name", defaultSchedulerName, "Volcano will handle pods whose .spec.SchedulerName is same as scheduler-name")
 	fs.StringVar(&c.QueueConfigFile, "queue-config-file", "", "File containing weights for the dynamic queue hierarchy nodes.")
-	fs.StringVar(&c.AdditionalSelectorsConfigFile, "additional-selectors", "", "File containing custom selectors for Volcano.")
 }
 
 // CheckPortOrDie check valid port range.

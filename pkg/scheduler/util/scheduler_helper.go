@@ -19,14 +19,12 @@ package util
 import (
 	"context"
 	"fmt"
+	"k8s.io/klog"
 	"math"
 	"math/rand"
 	"sort"
 	"sync"
 	"sync/atomic"
-	"volcano.sh/volcano/pkg/webhooks/router"
-
-	"k8s.io/klog"
 
 	"k8s.io/client-go/util/workqueue"
 	schedulerapi "k8s.io/kube-scheduler/extender/v1"
@@ -227,11 +225,12 @@ func SelectBestNode(nodeScores map[float64][]*api.NodeInfo) *api.NodeInfo {
 }
 
 // GetNodeList returns values of the map 'nodes'
-func GetNodeList(nodes map[string]*api.NodeInfo, selectors router.AdditionalSelectorsConfiguration) []*api.NodeInfo {
+func GetNodeList(nodes map[string]*api.NodeInfo) []*api.NodeInfo {
 	result := make([]*api.NodeInfo, 0, len(nodes))
-	for _, v := range nodes {
-		if value, exit := v.Node.Labels[selectors.NodeSelector.Name]; exit && (value == selectors.NodeSelector.Value) {
-			result = append(result, v)
+	for _, nodeInfo := range nodes {
+		klog.V(3).Infof("node %s has labels %s", nodeInfo.Node.Name, nodeInfo.Node.Labels)
+		if value, exit := nodeInfo.Node.Labels["volcano.sh/volcano-dedicated-node"]; exit && (value == "true"){
+			result = append(result, nodeInfo)
 		}
 	}
 	return result

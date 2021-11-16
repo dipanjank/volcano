@@ -18,9 +18,6 @@ package framework
 
 import (
 	"fmt"
-	"strings"
-	"volcano.sh/volcano/pkg/webhooks/router"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,6 +25,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	volumescheduling "k8s.io/kubernetes/pkg/controller/volume/scheduling"
+	"strings"
 
 	"volcano.sh/apis/pkg/apis/scheduling"
 	"volcano.sh/volcano/pkg/scheduler/api"
@@ -54,7 +52,6 @@ type Session struct {
 
 	Tiers          []conf.Tier
 	Configurations      []conf.Configuration
-	AdditionalSelectors router.AdditionalSelectorsConfiguration
 
 	plugins           map[string]Plugin
 	eventHandlers     []*EventHandler

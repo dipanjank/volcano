@@ -44,17 +44,4 @@ type AdmissionServiceConfig struct {
 	VolcanoClient versioned.Interface
 	Recorder      record.EventRecorder
 	QueueConfig   map[string]int32
-	AdditionalSelectors AdditionalSelectorsConfiguration
-}
-
-type AdditionalSelectorsConfiguration struct {
-	SelectorPrefix string `yaml:"selectorPrefix"`
-	NamespaceSector Selector `yaml:"namespaceSector"`
-	NodeSelector Selector `yaml:"nodeSelector"`
-	SchedulerSelector Selector `yaml:"schedulerSelector"`
-}
-
-type Selector struct {
-	Name string `yaml:"name"`
-	Value string `yaml:"value"`
 }

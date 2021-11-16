@@ -62,22 +62,16 @@ var service = &router.AdmissionService{
 				},
 			},
 			ObjectSelector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{fmt.Sprintf("%s/%s", selectorPrefix, schedulerSelectorName): schedulerSelectorValue},
+				MatchLabels: map[string]string{"volcano.sh/scheduled-by-volcano": "true"},
 			},
 			NamespaceSelector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{fmt.Sprintf("%s/%s", selectorPrefix, namespaceSelectorName): namespaceSelectorValue},
+				MatchLabels: map[string]string{"volcano.sh/volcano-dedicated-namespace": "true"},
 			},
 		}},
 	},
 }
 
 var config = &router.AdmissionServiceConfig{}
-
-var selectorPrefix = config.AdditionalSelectors.SelectorPrefix
-var schedulerSelectorName = config.AdditionalSelectors.SchedulerSelector.Name
-var schedulerSelectorValue = config.AdditionalSelectors.SchedulerSelector.Value
-var namespaceSelectorName = config.AdditionalSelectors.NamespaceSector.Name
-var namespaceSelectorValue = config.AdditionalSelectors.NamespaceSector.Value
 
 // AdmitPods is to validate pods and return response.
 func AdmitPods(ar v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {

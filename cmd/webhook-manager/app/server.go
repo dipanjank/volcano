@@ -70,29 +70,6 @@ func readQueueConfig(filePath string) map[string]int32 {
 	return hierarchyWeights
 }
 
-
-func ReadAdditionalSelectorsConfig(filePath string) router.AdditionalSelectorsConfiguration {
-	additionalSelectors := router.AdditionalSelectorsConfiguration{}
-	dat, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		klog.Errorf("Cannot read additional selector config file <%s>", filePath)
-		return additionalSelectors
-	}
-
-	additionalSelectorConf := string(dat)
-
-	if additionalSelectorConf == "" {
-		klog.Infof("No additional selector config is specified.")
-		return additionalSelectors
-	} else {
-		if err := yaml.Unmarshal([]byte(additionalSelectorConf), additionalSelectors); err != nil {
-			klog.Errorf("Cannot unmarshal additional selector config string <%s>", dat)
-			return additionalSelectors
-		}
-		return additionalSelectors
-	}
-}
-
 // Run start the service of admission controller.
 func Run(config *options.Config) error {
 	if config.PrintVersion {
@@ -117,7 +94,6 @@ func Run(config *options.Config) error {
 	vClient := getVolcanoClient(restConfig)
 	kubeClient := getKubeClient(restConfig)
 	queueConfig := readQueueConfig(config.QueueConfigFile)
-	additionalSelectorsConfig := ReadAdditionalSelectorsConfig(config.AdditionalSelectorsConfigFile)
 
 	// Fail the admission container if no hierarchy weights are found
 	// This is not compatible with the dap use-case
@@ -135,7 +111,6 @@ func Run(config *options.Config) error {
 			service.Config.SchedulerName = config.SchedulerName
 			service.Config.Recorder = recorder
 			service.Config.QueueConfig = queueConfig
-			service.Config.AdditionalSelectors = additionalSelectorsConfig
 		}
 
 		klog.V(3).Infof("Registered '%s' as webhook.", service.Path)

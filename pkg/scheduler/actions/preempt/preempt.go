@@ -18,6 +18,7 @@ package preempt
 
 import (
 	"k8s.io/klog"
+	"strings"
 
 	"volcano.sh/apis/pkg/apis/scheduling"
 	"volcano.sh/volcano/pkg/scheduler/api"
@@ -197,7 +198,13 @@ func preempt(
 ) (bool, error) {
 	assigned := false
 
-	allNodes := util.GetNodeList(ssn.Nodes, ssn.AdditionalSelectors)
+	allNodes := util.GetNodeList(ssn.Nodes)
+
+	var nodeNames []string
+	for _, node := range allNodes {
+		nodeNames = append(nodeNames, node.Name)
+	}
+	klog.V(4).Infof("Preempt -- all nodes %s", strings.Join(nodeNames, ","))
 
 	predicateNodes, _ := util.PredicateNodes(preemptor, allNodes, ssn.PredicateFn)
 
