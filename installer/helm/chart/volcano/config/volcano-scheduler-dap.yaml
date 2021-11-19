@@ -1,4 +1,4 @@
-actions: "reclaim, enqueue, allocate"
+actions: "enqueue, allocate, reclaim"
   configurations:
     - name: ScaleAllocatable
       arguments:
