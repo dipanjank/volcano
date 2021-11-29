@@ -43,7 +43,6 @@ type Config struct {
 	SchedulerName     string
 	WebhookURL        string
 	QueueConfigFile   string
-	AdditionalSelectorsConfigFile string
 }
 
 // NewConfig create new config.

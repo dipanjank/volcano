@@ -63,7 +63,6 @@ type ServerOption struct {
 	MinNodesToFind             int32
 	MinPercentageOfNodesToFind int32
 	PercentageOfNodesToFind    int32
-	AdditionalSelectorsConfigFile string
 }
 
 // ServerOpts server options.

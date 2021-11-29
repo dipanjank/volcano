@@ -17,14 +17,12 @@ limitations under the License.
 package preempt
 
 import (
-	"testing"
-	"time"
-	"volcano.sh/volcano/pkg/webhooks/router"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/scheduling/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
+	"testing"
+	"time"
 
 	schedulingv1 "volcano.sh/apis/pkg/apis/scheduling/v1beta1"
 	"volcano.sh/volcano/cmd/scheduler/app/options"
@@ -296,7 +294,7 @@ func TestPreempt(t *testing.T) {
 						},
 					},
 				},
-			}, nil, router.AdditionalSelectorsConfiguration{})
+			}, nil)
 			defer framework.CloseSession(ssn)
 
 			preempt.Execute(ssn)

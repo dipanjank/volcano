@@ -3,13 +3,11 @@ package drf
 import (
 	"flag"
 	"fmt"
-	"testing"
-	"volcano.sh/volcano/pkg/webhooks/router"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
+	"testing"
 	schedulingv1 "volcano.sh/apis/pkg/apis/scheduling/v1beta1"
 	"volcano.sh/volcano/cmd/scheduler/app/options"
 	"volcano.sh/volcano/pkg/scheduler/actions/allocate"
@@ -253,7 +251,7 @@ func TestHDRF(t *testing.T) {
 					},
 				},
 			},
-		}, nil, router.AdditionalSelectorsConfiguration{})
+		}, nil)
 		defer framework.CloseSession(ssn)
 		allocateAction := allocate.New()
 
