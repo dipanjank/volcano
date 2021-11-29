@@ -18,14 +18,12 @@ package binpack
 
 import (
 	"fmt"
-	"math"
-	"testing"
-	"volcano.sh/volcano/pkg/webhooks/router"
-
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
+	"math"
+	"testing"
 
 	schedulingv1 "volcano.sh/apis/pkg/apis/scheduling/v1beta1"
 	"volcano.sh/volcano/pkg/scheduler/api"
@@ -270,7 +268,7 @@ func TestNode(t *testing.T) {
 					},
 				},
 			},
-		}, nil, router.AdditionalSelectorsConfiguration{})
+		}, nil)
 		defer framework.CloseSession(ssn)
 
 		for _, job := range ssn.Jobs {
