@@ -18,6 +18,8 @@ import (
 	"volcano.sh/volcano/pkg/scheduler/util"
 )
 
+const volcanoDedicatedNodeLabelName = "volcano.sh/volcano-dedicated-node"
+
 func makePods(num int, cpu, mem, podGroupName string) []*v1.Pod {
 	pods := []*v1.Pod{}
 	for i := 0; i < num; i++ {
@@ -90,7 +92,7 @@ func TestHDRF(t *testing.T) {
 			},
 			nodes: []*v1.Node{util.BuildNode("n",
 				util.BuildResourceList("10", "10G"),
-				make(map[string]string))},
+				map[string]string{volcanoDedicatedNodeLabelName: "true"})},
 			queueSpecs: []queueSpec{
 				{
 					name:      "root-sci",
@@ -155,7 +157,7 @@ func TestHDRF(t *testing.T) {
 			},
 			nodes: []*v1.Node{util.BuildNode("n",
 				util.BuildResourceList("30", "30G"),
-				make(map[string]string))},
+				map[string]string{volcanoDedicatedNodeLabelName: "true"})},
 			queueSpecs: []queueSpec{
 				{
 					name:      "root-pg1",
