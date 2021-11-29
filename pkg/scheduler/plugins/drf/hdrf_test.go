@@ -3,12 +3,11 @@ package drf
 import (
 	"flag"
 	"fmt"
-	"testing"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
+	"testing"
 	schedulingv1 "volcano.sh/apis/pkg/apis/scheduling/v1beta1"
 	"volcano.sh/volcano/cmd/scheduler/app/options"
 	"volcano.sh/volcano/pkg/scheduler/actions/allocate"
@@ -18,6 +17,8 @@ import (
 	"volcano.sh/volcano/pkg/scheduler/framework"
 	"volcano.sh/volcano/pkg/scheduler/util"
 )
+
+const volcanoDedicatedNodeLabelName = "volcano.sh/volcano-dedicated-node"
 
 func makePods(num int, cpu, mem, podGroupName string) []*v1.Pod {
 	pods := []*v1.Pod{}
@@ -91,7 +92,7 @@ func TestHDRF(t *testing.T) {
 			},
 			nodes: []*v1.Node{util.BuildNode("n",
 				util.BuildResourceList("10", "10G"),
-				make(map[string]string))},
+				map[string]string{volcanoDedicatedNodeLabelName: "true"})},
 			queueSpecs: []queueSpec{
 				{
 					name:      "root-sci",
@@ -156,7 +157,7 @@ func TestHDRF(t *testing.T) {
 			},
 			nodes: []*v1.Node{util.BuildNode("n",
 				util.BuildResourceList("30", "30G"),
-				make(map[string]string))},
+				map[string]string{volcanoDedicatedNodeLabelName: "true"})},
 			queueSpecs: []queueSpec{
 				{
 					name:      "root-pg1",

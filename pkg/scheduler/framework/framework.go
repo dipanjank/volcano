@@ -17,9 +17,8 @@ limitations under the License.
 package framework
 
 import (
-	"time"
-
 	"k8s.io/klog"
+	"time"
 
 	"volcano.sh/volcano/pkg/scheduler/cache"
 	"volcano.sh/volcano/pkg/scheduler/conf"
