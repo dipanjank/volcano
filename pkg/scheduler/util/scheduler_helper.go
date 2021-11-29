@@ -33,7 +33,10 @@ import (
 	"volcano.sh/volcano/pkg/scheduler/api"
 )
 
-const baselinePercentageOfNodesToFind = 50
+const (
+	baselinePercentageOfNodesToFind = 50
+	volcanoDedicatedNodeLabelName = "volcano.sh/volcano-dedicated-node"
+)
 
 var lastProcessedNodeIndex int
 
@@ -229,7 +232,7 @@ func GetNodeList(nodes map[string]*api.NodeInfo) []*api.NodeInfo {
 	result := make([]*api.NodeInfo, 0, len(nodes))
 	for _, nodeInfo := range nodes {
 		klog.V(3).Infof("node %s has labels %s", nodeInfo.Node.Name, nodeInfo.Node.Labels)
-		if value, exit := nodeInfo.Node.Labels["volcano.sh/volcano-dedicated-node"]; exit && (value == "true"){
+		if value, exit := nodeInfo.Node.Labels[volcanoDedicatedNodeLabelName]; exit && (value == "true"){
 			result = append(result, nodeInfo)
 		}
 	}

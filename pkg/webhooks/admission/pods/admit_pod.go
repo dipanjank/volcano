@@ -42,6 +42,11 @@ func init() {
 	router.RegisterAdmission(service)
 }
 
+const (
+	scheduledByVolcanoLabelName = "volcano.sh/scheduled-by-volcano"
+	volcanoDedicatedNamespaceLabelName = "volcano.sh/volcano-dedicated-namespace"
+)
+
 var service = &router.AdmissionService{
 	Path: "/pods/validate",
 	Func: AdmitPods,
@@ -62,10 +67,10 @@ var service = &router.AdmissionService{
 				},
 			},
 			ObjectSelector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"volcano.sh/scheduled-by-volcano": "true"},
+				MatchLabels: map[string]string{scheduledByVolcanoLabelName: "true"},
 			},
 			NamespaceSelector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"volcano.sh/volcano-dedicated-namespace": "true"},
+				MatchLabels: map[string]string{volcanoDedicatedNamespaceLabelName: "true"},
 			},
 		}},
 	},
