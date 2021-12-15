@@ -32,17 +32,18 @@ const (
 
 // Config admission-controller server config.
 type Config struct {
-	KubeClientOptions kube.ClientOptions
-	CertFile          string
-	KeyFile           string
-	CaCertFile        string
-	Port              int
-	PrintVersion      bool
-	WebhookName       string
-	WebhookNamespace  string
-	SchedulerName     string
-	WebhookURL        string
-	QueueConfigFile   string
+	KubeClientOptions        kube.ClientOptions
+	CertFile                 string
+	KeyFile                  string
+	CaCertFile               string
+	Port                     int
+	PrintVersion             bool
+	WebhookName              string
+	WebhookNamespace         string
+	SchedulerName            string
+	WebhookURL               string
+	QueueConfigFile          string
+	WebhookNamespaceSelector string
 }
 
 // NewConfig create new config.
@@ -68,6 +69,7 @@ func (c *Config) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.WebhookNamespace, "webhook-namespace", "", "The namespace of this webhook")
 	fs.StringVar(&c.WebhookName, "webhook-service-name", "", "The name of this webhook")
 	fs.StringVar(&c.WebhookURL, "webhook-url", "", "The url of this webhook")
+	fs.StringVar(&c.WebhookNamespaceSelector, "webhook-namespace-selector", "", "The namespace that the webhook operates on")
 
 	fs.StringVar(&c.SchedulerName, "scheduler-name", defaultSchedulerName, "Volcano will handle pods whose .spec.SchedulerName is same as scheduler-name")
 	fs.StringVar(&c.QueueConfigFile, "queue-config-file", "", "File containing weights for the dynamic queue hierarchy nodes.")
