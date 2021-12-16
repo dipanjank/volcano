@@ -267,13 +267,10 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 	}
 
 	if hierarchyEnabled {
-		guard <- 1
-		go func(hn *hierarchicalNode, totalResource *api.Resource) {
-			klog.V(4).Infof("Update metrics")
-			metrics.UpdateQueueTotalAllocatable("root", totalResource.MilliCPU, totalResource.Memory)
-			drf.UpdateHierarchicalQueueMetrics(hn)
-			<-guard
-		}(drf.hierarchicalRoot.Clone(nil), drf.totalResource.Clone())
+		klog.V(4).Infof("Update metrics")
+
+		metrics.UpdateQueueTotalAllocatable("root", drf.totalResource.MilliCPU, drf.totalResource.Memory)
+		drf.UpdateHierarchicalQueueMetrics(drf.hierarchicalRoot)
 	}
 
 	preemptableFn := func(preemptor *api.TaskInfo, preemptees []*api.TaskInfo) []*api.TaskInfo {
@@ -589,6 +586,7 @@ func (drf *drfPlugin) GetName(nodes []*hierarchicalNode) string {
 }
 
 func (drf *drfPlugin) UpdateHierarchicalQueueMetrics(node *hierarchicalNode) {
+
 	nodes := drf.GetParent(node)
 	nodeName := drf.GetName(nodes)
 
