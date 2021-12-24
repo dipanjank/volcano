@@ -48,6 +48,7 @@ type hierarchicalNode struct {
 	request      *api.Resource
 	weight       float64
 	totalWeights float64
+	totalJobs    int
 	saturated    bool
 	hierarchy    string
 	children     map[string]*hierarchicalNode
@@ -67,6 +68,7 @@ func (node *hierarchicalNode) Clone(parent *hierarchicalNode) *hierarchicalNode 
 		weight:       node.weight,
 		saturated:    node.saturated,
 		hierarchy:    node.hierarchy,
+		totalJobs:    node.totalJobs,
 		children:     nil,
 	}
 	if node.children != nil {
@@ -259,7 +261,6 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 		}
 		if hierarchyEnabled {
 			queue := ssn.Queues[job.Queue]
-
 			drf.totalAllocated.Add(attr.allocated)
 			drf.UpdateHierarchicalShare("OnSessionOpen",
 				drf.hierarchicalRoot, drf.totalAllocated, job, attr, queue.Hierarchy, queue.Weights)
@@ -271,6 +272,7 @@ func (drf *drfPlugin) OnSessionOpen(ssn *framework.Session) {
 
 		metrics.UpdateQueueTotalAllocatable("root", drf.totalResource.MilliCPU, drf.totalResource.Memory)
 		drf.UpdateHierarchicalQueueMetrics(drf.hierarchicalRoot)
+
 	}
 
 	preemptableFn := func(preemptor *api.TaskInfo, preemptees []*api.TaskInfo) []*api.TaskInfo {
@@ -626,6 +628,8 @@ func (drf *drfPlugin) UpdateHierarchicalQueueMetrics(node *hierarchicalNode) {
 
 	metrics.UpdateQueueHierarchyWeight(nodeName, node.weight)
 	metrics.UpdateQueueTotalHierarchyWeights(nodeName, node.totalWeights)
+
+	metrics.UpdateQueueActiveJobs(nodeName, float64(node.totalJobs))
 }
 
 func (drf *drfPlugin) updateNamespaceShare(namespaceName string, attr *drfAttr) {
@@ -636,18 +640,21 @@ func (drf *drfPlugin) updateNamespaceShare(namespaceName string, attr *drfAttr) 
 // build hierarchy if the node does not exist
 func (drf *drfPlugin) buildHierarchy(root *hierarchicalNode, job *api.JobInfo, attr *drfAttr,
 	hierarchy, hierarchicalWeights string) {
+	root.totalJobs += 1
 	inode := root
 	paths := strings.Split(hierarchy, "/")
 	weights := strings.Split(hierarchicalWeights, "/")
 
 	for i := 1; i < len(paths); i++ {
 		if child, ok := inode.children[paths[i]]; ok {
+			child.totalJobs += 1
 			inode = child
 		} else {
 			fweight, _ := strconv.ParseFloat(weights[i], 64)
 			if fweight < 1 {
 				fweight = 1
 			}
+
 			child = &hierarchicalNode{
 				weight:    fweight,
 				hierarchy: paths[i],
@@ -655,7 +662,8 @@ func (drf *drfPlugin) buildHierarchy(root *hierarchicalNode, job *api.JobInfo, a
 				attr: &drfAttr{
 					allocated: api.EmptyResource(),
 				},
-				children: make(map[string]*hierarchicalNode),
+				totalJobs: 1,
+				children:  make(map[string]*hierarchicalNode),
 			}
 			klog.V(4).Infof("Node %s added to %s, weight %f",
 				child.hierarchy, inode.hierarchy, fweight)
@@ -672,7 +680,9 @@ func (drf *drfPlugin) buildHierarchy(root *hierarchicalNode, job *api.JobInfo, a
 		request:   job.TotalRequest.Clone(),
 		children:  nil,
 	}
+
 	inode.children[string(job.UID)] = child
+
 	// update drf attribute bottom up
 	klog.V(4).Infof("Job <%s/%s> added to %s, weights %s, attr %v, total request: %s",
 		job.Namespace, job.Name, inode.hierarchy, hierarchicalWeights, child.attr, job.TotalRequest)
