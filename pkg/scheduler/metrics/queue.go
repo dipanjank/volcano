@@ -181,6 +181,15 @@ var (
 			Help:      "The number of Unknown PodGroup in this queue",
 		}, []string{"queue_name"},
 	)
+
+	queueActiveJobs = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Subsystem: VolcanoNamespace,
+			Name:      "queue_active_jobs",
+			Help:      "The number of acive jobs in this queue",
+		},
+		[]string{"queue_name"},
+	)
 )
 
 // UpdateQueueAllocated records allocated resources for one queue
@@ -267,4 +276,9 @@ func UpdateQueuePodGroupRunningCount(queueName string, count int32) {
 // UpdateQueuePodGroupUnknownCount records the number of Unknown PodGroup in this queue
 func UpdateQueuePodGroupUnknownCount(queueName string, count int32) {
 	queuePodGroupUnknown.WithLabelValues(queueName).Set(float64(count))
+}
+
+// UpdateQueuePodGroupUnknownCount records the number of Unknown PodGroup in this queue
+func UpdateQueueActiveJobs(queueName string, count float64) {
+	queueActiveJobs.WithLabelValues(queueName).Set(count)
 }
