@@ -18,7 +18,6 @@ package framework
 
 import (
 	"fmt"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -27,6 +26,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	volumescheduling "k8s.io/kubernetes/pkg/controller/volume/scheduling"
+	"strings"
 
 	"volcano.sh/apis/pkg/apis/scheduling"
 	"volcano.sh/volcano/pkg/scheduler/api"
@@ -477,4 +477,17 @@ func (ssn Session) String() string {
 	}
 
 	return msg
+}
+
+// ScaleAllocatables scale the Allocatable Resources from the "ScaleAllocatable" configuration element
+func (ssn *Session) ScaleAllocatables(configurations []conf.Configuration) {
+	for _, adjustConf := range configurations {
+		klog.V(4).Infof("Checking config item <%s>", adjustConf.Name)
+		if strings.EqualFold(adjustConf.Name, "ScaleAllocatable") {
+			factors := adjustConf.Arguments
+			for _, nodeInfo := range ssn.Nodes {
+				nodeInfo.Allocatable.ScaleResource(factors)
+			}
+		}
+	}
 }

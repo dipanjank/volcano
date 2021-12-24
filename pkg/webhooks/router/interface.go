@@ -47,3 +47,11 @@ type AdmissionService struct {
 
 	Config *AdmissionServiceConfig
 }
+
+type AdmissionServiceConfig struct {
+	SchedulerName string
+	KubeClient    kubernetes.Interface
+	VolcanoClient versioned.Interface
+	Recorder      record.EventRecorder
+	QueueConfig   map[string]int32
+}

@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sigs.k8s.io/yaml"
 	"strconv"
 	"syscall"
 
@@ -37,6 +38,38 @@ import (
 	wkconfig "volcano.sh/volcano/pkg/webhooks/config"
 	"volcano.sh/volcano/pkg/webhooks/router"
 )
+
+// HierarchyWeights user configured weights for the queue hierarchy
+type HierarchyWeights struct {
+	Weights map[string]int
+}
+
+// readQueueConfig Read Dynamic Queue Configuration from a file.
+func readQueueConfig(filePath string) map[string]int32 {
+	hierarchyWeights := make(map[string]int32)
+	klog.V(3).Infof("Trying to read Hierarchy weights from <%s>", filePath)
+	contentBytes, err := ioutil.ReadFile(filePath)
+
+	if err != nil {
+		klog.Errorf("Queue config file <%s> does not exist or cannot be read: <%s>", filePath, err.Error())
+		return hierarchyWeights
+	}
+
+	// Try to unmarshall the YAML
+	weightsConf := &HierarchyWeights{}
+	err = yaml.Unmarshal(contentBytes, weightsConf)
+
+	if err != nil {
+		klog.Errorf("Parse error in Queue config file <%s>: <%s>", filePath, err.Error())
+		return hierarchyWeights
+	}
+
+	for nodeName, nodeWeight := range weightsConf.Weights {
+		hierarchyWeights[nodeName] = int32(nodeWeight)
+		klog.V(3).Infof("Using hierarchy weight <%d> for <%s>", nodeWeight, nodeName)
+	}
+	return hierarchyWeights
+}
 
 // Run start the service of admission controller.
 func Run(config *options.Config) error {
@@ -68,6 +101,14 @@ func Run(config *options.Config) error {
 
 	vClient := getVolcanoClient(restConfig)
 	kubeClient := getKubeClient(restConfig)
+	queueConfig := readQueueConfig(config.QueueConfigFile)
+
+	// Fail the admission container if no hierarchy weights are found
+	// This is not compatible with the dap use-case
+	if len(queueConfig) == 0 {
+		return fmt.Errorf("no queue hierarchy weights found in <%s>. Plase check admission configuration",
+			config.QueueConfigFile)
+	}
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
@@ -79,6 +120,7 @@ func Run(config *options.Config) error {
 			service.Config.SchedulerName = config.SchedulerName
 			service.Config.Recorder = recorder
 			service.Config.ConfigData = admissionConf
+			service.Config.QueueConfig = queueConfig
 		}
 
 		klog.V(3).Infof("Registered '%s' as webhook.", service.Path)

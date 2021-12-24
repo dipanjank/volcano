@@ -17,9 +17,8 @@ limitations under the License.
 package framework
 
 import (
-	"time"
-
 	"k8s.io/klog"
+	"time"
 
 	"volcano.sh/volcano/pkg/scheduler/cache"
 	"volcano.sh/volcano/pkg/scheduler/conf"
@@ -31,6 +30,7 @@ func OpenSession(cache cache.Cache, tiers []conf.Tier, configurations []conf.Con
 	ssn := openSession(cache)
 	ssn.Tiers = tiers
 	ssn.Configurations = configurations
+	ssn.ScaleAllocatables(configurations)
 
 	for _, tier := range tiers {
 		for _, plugin := range tier.Plugins {
