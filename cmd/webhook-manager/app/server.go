@@ -22,9 +22,10 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sigs.k8s.io/yaml"
 	"strconv"
 	"syscall"
+
+	"sigs.k8s.io/yaml"
 
 	v1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"

@@ -15,10 +15,10 @@ metadata:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-queue-weights-configmap
+  name: {{ .Release.Name }}-queue-configmap
   namespace: {{ .Release.Namespace }}
 data:
-  {{- (.Files.Glob .Values.basic.dynamic_queue_weights).AsConfig | nindent 2}}
+  {{- (.Files.Glob .Values.basic.queue_config_file).AsConfig | nindent 2}}
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
@@ -96,7 +96,7 @@ spec:
             - --admission-conf=/admission.local.config/configmap/{{base .Values.basic.admission_config_file}}
             - --webhook-namespace={{ .Release.Namespace }}
             - --webhook-service-name={{ .Release.Name }}-admission-service
-            - --queue-config-file=/admission.local.config/queueweights/{{base .Values.basic.dynamic_queue_weights}}
+            - --queue-config-file=/admission.local.config/queue/{{base .Values.basic.queue_config_file}}
             - --logtostderr
             - --port={{.Values.basic.admission_port}}
             - -v=4
@@ -110,8 +110,8 @@ spec:
               readOnly: true
             - mountPath: /admission.local.config/configmap
               name: admission-config
-            - mountPath: /admission.local.config/queueweights
-              name: admission-queue-weights
+            - mountPath: /admission.local.config/queue
+              name: admission-queue
       volumes:
         - name: admission-certs
           secret:
@@ -120,10 +120,9 @@ spec:
         - name: admission-config
           configMap:
             name: {{ .Release.Name }}-admission-configmap
-
-        - name: admission-queue-weights
+        - name: admission-queue
           configMap:
-            name: {{ .Release.Name }}-queue-weights-configmap
+            name: {{ .Release.Name }}-queue-configmap
 ---
 apiVersion: v1
 kind: Service
@@ -151,6 +150,7 @@ metadata:
     app: volcano-admission-init
 spec:
   backoffLimit: 3
+  ttlSecondsAfterFinished: 10
   template:
     spec:
       serviceAccountName: {{ .Release.Name }}-admission

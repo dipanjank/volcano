@@ -31,6 +31,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog"
 
+	"fmt"
+
 	"volcano.sh/apis/pkg/apis/helpers"
 	vcv1beta1 "volcano.sh/apis/pkg/apis/scheduling/v1beta1"
 	"volcano.sh/volcano/pkg/webhooks/router"
@@ -41,6 +43,11 @@ import (
 func init() {
 	router.RegisterAdmission(service)
 }
+
+const (
+	scheduledByVolcanoLabelName                                    = "volcano.sh/scheduled-by-volcano"
+	volcanoDedicatedNamespaceLabelName                             = "volcano.sh/volcano-dedicated-namespace"
+)
 
 var service = &router.AdmissionService{
 	Path: "/pods/validate",
@@ -60,6 +67,12 @@ var service = &router.AdmissionService{
 						Resources:   []string{"pods"},
 					},
 				},
+			},
+			ObjectSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{scheduledByVolcanoLabelName: "true"},
+			},
+			NamespaceSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{volcanoDedicatedNamespaceLabelName: "true"},
 			},
 		}},
 	},

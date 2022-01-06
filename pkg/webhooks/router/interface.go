@@ -34,6 +34,7 @@ type AdmissionServiceConfig struct {
 	KubeClient    kubernetes.Interface
 	VolcanoClient versioned.Interface
 	Recorder      record.EventRecorder
+	QueueConfig   map[string]int32
 	ConfigData    *config.AdmissionConfiguration
 }
 
@@ -46,12 +47,4 @@ type AdmissionService struct {
 	MutatingConfig   *whv1beta1.MutatingWebhookConfiguration
 
 	Config *AdmissionServiceConfig
-}
-
-type AdmissionServiceConfig struct {
-	SchedulerName string
-	KubeClient    kubernetes.Interface
-	VolcanoClient versioned.Interface
-	Recorder      record.EventRecorder
-	QueueConfig   map[string]int32
 }
