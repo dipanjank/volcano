@@ -38,7 +38,7 @@ func MakePodName(jobName string, taskName string, index int) string {
 	return fmt.Sprintf(jobhelpers.PodNameFmt, jobName, taskName, index)
 }
 
-func createJobPod(job *batch.Job, template *v1.PodTemplateSpec, ix int, envVarOverrides map[string]string) *v1.Pod {
+func createJobPod(job *batch.Job, template *v1.PodTemplateSpec, ix int) *v1.Pod {
 	templateCopy := template.DeepCopy()
 
 	pod := &v1.Pod{

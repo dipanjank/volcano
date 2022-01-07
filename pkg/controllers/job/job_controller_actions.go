@@ -299,7 +299,7 @@ func (cc *jobcontroller) syncJob(jobInfo *apis.JobInfo, updateStatus state.Updat
 			podName := fmt.Sprintf(jobhelpers.PodNameFmt, job.Name, name, i)
 			if pod, found := pods[podName]; !found {
 
-				newPod := createJobPod(job, tc, i, make(map[string]string))
+				newPod := createJobPod(job, tc, i)
 
 				if err := cc.pluginOnPodCreate(job, newPod); err != nil {
 					return err
