@@ -39,6 +39,7 @@ import (
 type Scheduler struct {
 	cache          schedcache.Cache
 	schedulerConf  string
+	additionalSelectorsFile string
 	fileWatcher    filewatcher.FileWatcher
 	schedulePeriod time.Duration
 	once           sync.Once
@@ -56,7 +57,7 @@ func NewScheduler(
 	schedulerConf string,
 	period time.Duration,
 	defaultQueue string,
-) (*Scheduler, error) {
+	) (*Scheduler, error) {
 	var watcher filewatcher.FileWatcher
 	if schedulerConf != "" {
 		var err error

@@ -42,6 +42,11 @@ func init() {
 	router.RegisterAdmission(service)
 }
 
+const (
+	scheduledByVolcanoLabelName = "volcano.sh/scheduled-by-volcano"
+	volcanoDedicatedNamespaceLabelName = "volcano.sh/volcano-dedicated-namespace"
+)
+
 var service = &router.AdmissionService{
 	Path: "/pods/validate",
 	Func: AdmitPods,
@@ -61,13 +66,19 @@ var service = &router.AdmissionService{
 					},
 				},
 			},
+			ObjectSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{scheduledByVolcanoLabelName: "true"},
+			},
+			NamespaceSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{volcanoDedicatedNamespaceLabelName: "true"},
+			},
 		}},
 	},
 }
 
 var config = &router.AdmissionServiceConfig{}
 
-// AdmitPods is to admit pods and return response.
+// AdmitPods is to validate pods and return response.
 func AdmitPods(ar v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 
 	klog.V(3).Infof("admitting pods -- %s", ar.Request.Operation)

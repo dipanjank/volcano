@@ -36,6 +36,8 @@ import (
 	"volcano.sh/volcano/pkg/scheduler/util"
 )
 
+const volcanoDedicatedNodeLabelName = "volcano.sh/volcano-dedicated-node"
+
 func TestAllocate(t *testing.T) {
 	framework.RegisterPluginBuilder("drf", drf.New)
 	framework.RegisterPluginBuilder("proportion", proportion.New)
@@ -74,7 +76,7 @@ func TestAllocate(t *testing.T) {
 				util.BuildPod("c1", "p2", "", v1.PodPending, util.BuildResourceList("1", "1G"), "pg1", make(map[string]string), make(map[string]string)),
 			},
 			nodes: []*v1.Node{
-				util.BuildNode("n1", util.BuildResourceList("2", "4Gi"), make(map[string]string)),
+				util.BuildNode("n1", util.BuildResourceList("2", "4Gi"), map[string]string{volcanoDedicatedNodeLabelName: "true"}),
 			},
 			queues: []*schedulingv1.Queue{
 				{
@@ -125,7 +127,7 @@ func TestAllocate(t *testing.T) {
 				util.BuildPod("c2", "p2", "", v1.PodPending, util.BuildResourceList("1", "1G"), "pg2", make(map[string]string), make(map[string]string)),
 			},
 			nodes: []*v1.Node{
-				util.BuildNode("n1", util.BuildResourceList("2", "4G"), make(map[string]string)),
+				util.BuildNode("n1", util.BuildResourceList("2", "4G"), map[string]string{volcanoDedicatedNodeLabelName: "true"}),
 			},
 			queues: []*schedulingv1.Queue{
 				{
@@ -180,7 +182,7 @@ func TestAllocate(t *testing.T) {
 				util.BuildPod("c1", "p2", "", v1.PodPending, util.BuildResourceList("1", "1G"), "pg2", make(map[string]string), make(map[string]string)),
 			},
 			nodes: []*v1.Node{
-				util.BuildNode("n1", util.BuildResourceList("2", "4G"), make(map[string]string)),
+				util.BuildNode("n1", util.BuildResourceList("2", "4G"), map[string]string{volcanoDedicatedNodeLabelName: "true"}),
 			},
 			queues: []*schedulingv1.Queue{
 				{

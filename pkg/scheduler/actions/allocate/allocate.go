@@ -18,6 +18,7 @@ package allocate
 
 import (
 	"k8s.io/klog"
+	"strings"
 	"volcano.sh/apis/pkg/apis/scheduling"
 	"volcano.sh/volcano/pkg/scheduler/api"
 	"volcano.sh/volcano/pkg/scheduler/framework"
@@ -96,6 +97,13 @@ func (alloc *Action) Execute(ssn *framework.Session) {
 	pendingTasks := map[api.JobID]*util.PriorityQueue{}
 
 	allNodes := util.GetNodeList(ssn.Nodes)
+
+	var nodeNames []string
+	for _, node := range allNodes {
+		nodeNames = append(nodeNames, node.Name)
+	}
+	klog.V(4).Infof("Allocate -- all nodes %s", strings.Join(nodeNames, ","))
+
 	unlockedNodes := allNodes
 	if targetJob != nil && len(util.Reservation.LockedNodes) != 0 {
 		unlockedNodes = unlockedNodes[0:0]

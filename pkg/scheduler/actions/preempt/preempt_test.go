@@ -17,13 +17,12 @@ limitations under the License.
 package preempt
 
 import (
-	"testing"
-	"time"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/scheduling/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
+	"testing"
+	"time"
 
 	schedulingv1 "volcano.sh/apis/pkg/apis/scheduling/v1beta1"
 	"volcano.sh/volcano/cmd/scheduler/app/options"
@@ -35,6 +34,8 @@ import (
 	"volcano.sh/volcano/pkg/scheduler/plugins/gang"
 	"volcano.sh/volcano/pkg/scheduler/util"
 )
+
+const volcanoDedicatedNodeLabelName = "volcano.sh/volcano-dedicated-node"
 
 func TestPreempt(t *testing.T) {
 	framework.RegisterPluginBuilder("conformance", conformance.New)
@@ -75,7 +76,7 @@ func TestPreempt(t *testing.T) {
 			},
 			// If there are enough idle resources on the node, then there is no need to preempt anything.
 			nodes: []*v1.Node{
-				util.BuildNode("n1", util.BuildResourceList("10", "10G"), make(map[string]string)),
+				util.BuildNode("n1", util.BuildResourceList("10", "10G"), map[string]string{volcanoDedicatedNodeLabelName: "true"}),
 			},
 			queues: []*schedulingv1.Queue{
 				{
@@ -122,7 +123,7 @@ func TestPreempt(t *testing.T) {
 			},
 			// All resources on the node will be in use.
 			nodes: []*v1.Node{
-				util.BuildNode("n1", util.BuildResourceList("3", "3G"), make(map[string]string)),
+				util.BuildNode("n1", util.BuildResourceList("3", "3G"), map[string]string{volcanoDedicatedNodeLabelName: "true"}),
 			},
 			queues: []*schedulingv1.Queue{
 				{
@@ -170,7 +171,7 @@ func TestPreempt(t *testing.T) {
 				util.BuildPod("c1", "preemptor2", "", v1.PodPending, util.BuildResourceList("1", "1G"), "pg2", make(map[string]string), make(map[string]string)),
 			},
 			nodes: []*v1.Node{
-				util.BuildNode("n1", util.BuildResourceList("2", "2G"), make(map[string]string)),
+				util.BuildNode("n1", util.BuildResourceList("2", "2G"), map[string]string{volcanoDedicatedNodeLabelName: "true"}),
 			},
 			queues: []*schedulingv1.Queue{
 				{
@@ -219,7 +220,7 @@ func TestPreempt(t *testing.T) {
 				util.BuildPod("c1", "preemptor1", "", v1.PodPending, util.BuildResourceList("5", "5G"), "pg2", make(map[string]string), make(map[string]string)),
 			},
 			nodes: []*v1.Node{
-				util.BuildNode("n1", util.BuildResourceList("6", "6G"), make(map[string]string)),
+				util.BuildNode("n1", util.BuildResourceList("6", "6G"), map[string]string{volcanoDedicatedNodeLabelName: "true"}),
 			},
 			queues: []*schedulingv1.Queue{
 				{
