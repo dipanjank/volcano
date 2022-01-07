@@ -1,4 +1,4 @@
-name: Tag Release to https://hub.docker.com/repository/docker/dipanjank/spark-volcano
+name: Tag Release to https://hub.docker.com/repository/docker/tboekestijn/spark-volcano
 
 on:
   push:
