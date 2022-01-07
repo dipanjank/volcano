@@ -69,6 +69,9 @@ docker tag ${IMAGE_PREFIX}-webhook-manager:${VOLCANO_IMAGE_TAG} ${IMAGE_PREFIX}-
 docker push ${IMAGE_PREFIX}-admission:${VOLCANO_IMAGE_TAG}
 docker push ${IMAGE_PREFIX}-webhook-manager:${VOLCANO_IMAGE_TAG}
 
+echo "pushing ${IMAGE_PREFIX}-dashboard:${VOLCANO_IMAGE_TAG}"
+docker push ${IMAGE_PREFIX}-dashboard:${VOLCANO_IMAGE_TAG}
+
 echo "Generate release tar files"
 cd ${RELEASE_FOLDER}/
 tar -zcvf volcano-${VOLCANO_IMAGE_TAG}-${OSTYPE}.tar.gz *
