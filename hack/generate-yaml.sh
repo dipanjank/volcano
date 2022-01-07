@@ -115,6 +115,7 @@ ${HELM_BIN_DIR}/helm template ${VK_ROOT}/installer/helm/chart/volcano --namespac
       -s templates/scheduler.yaml \
       -s templates/scheduling_v1beta1_podgroup.yaml \
       -s templates/scheduling_v1beta1_queue.yaml \
+      -s templates/dashboard.yaml \
       >> ${DEPLOYMENT_FILE}
 
 ${HELM_BIN_DIR}/helm template ${VK_ROOT}/installer/helm/chart/volcano --namespace volcano-monitoring \
@@ -122,4 +123,5 @@ ${HELM_BIN_DIR}/helm template ${VK_ROOT}/installer/helm/chart/volcano --namespac
       -s templates/prometheus.yaml \
       -s templates/kubestatemetrics.yaml \
       -s templates/grafana.yaml \
+      -s templates/dashboard.yaml \
       >> ${MONITOR_DEPLOYMENT_YAML_FILENAME}

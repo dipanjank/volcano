@@ -1,0 +1,239 @@
+<child_queue>
+    <li>
+        <div if={props.item.kind == "Queue"} onclick={(event) => { event.stopPropagation(); this.expand(); }}>
+            <span class="progress-label">
+              { props.item.name }
+            </span>
+            <div class="progress progress-capacity" if={this.progress}>
+                <div  if={this.progress.used != 0} class="progress-bar progress-bar-success" style={ getWidth(this.progress.used) }>
+                    Used
+                    <div class="progress-under">
+                        {this.getPercentage(this.progress.used)}%
+                    </div>
+                </div>
+                <div if={this.progress.deserved != 0} class="progress-bar progress-bar-minimal" style={ getWidth(this.progress.deserved) }>
+                    Deserved
+                    <div class="progress-under">
+                        {this.getPercentage(queue_metrics["deserved_share"])}%
+                    </div>
+                </div>
+                <div if={this.progress.overused != 0} class="progress-bar progress-bar-warning" style={ getWidth(this.progress.overused) }>
+                    Overused
+                    <div class="progress-under">
+                        {this.getPercentage(queue_metrics["share"])}%
+                    </div>
+                </div>
+                <div if={this.progress.claimable != 0} class="progress-bar progress-bar-claimable" style={ getWidth(this.progress.claimable) }>
+                    Claimable
+                    <div class="progress-under">
+                        {this.getPercentage(1 - this.progress.unavailable)}%
+                    </div>
+                </div>
+                <div if={this.progress.unavailable != 0} class="progress-bar progress-bar-unavailable" style={ getWidth(this.progress.unavailable) }>
+                    Unavailable
+                    <div class="progress-under">
+                        {this.getPercentage(1)}%
+                    </div>
+                </div>
+            </div>
+            <div class="metrics-overview" if={queue_metrics && this.state.expanded}>
+                <h6><strong>Metrics</strong></h6>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr if={"hierarchy_weight" in queue_metrics}>
+                        <td>Weight</td>
+                        <td>{queue_metrics["hierarchy_weight"]} of {totalweights}</td>
+                    </tr>
+                    <tr if={"deserved_share" in queue_metrics}>
+                        <td>Deserved capacity</td>
+                        <td>{this.getPercentage(queue_metrics["deserved_share"])}%</td>
+                    </tr>
+                    <tr if={"share" in queue_metrics}>
+                        <td>Active capacity</td>
+                        <td>{this.getPercentage(queue_metrics["share"])}%</td>
+                    </tr>
+                    <tr if={"allocated_memory_bytes" in queue_metrics}>
+                        <td>Allocated memory</td>
+                        <td>{this.bytesToSize(queue_metrics["allocated_memory_bytes"])}</td>
+                    </tr>
+                    <tr if={"allocated_milli_cpu" in queue_metrics}>
+                        <td>Allocated cpus</td>
+                        <td>{this.getCpuSize(queue_metrics["allocated_milli_cpu"])}</td>
+                    </tr>
+                    <tr if={"deserved_memory_bytes" in queue_metrics}>
+                        <td>Deserved memory</td>
+                        <td>{this.bytesToSize(queue_metrics["deserved_memory_bytes"])}</td>
+                    </tr>
+                    <tr if={"deserved_milli_cpu" in queue_metrics}>
+                        <td>Deserved cpus</td>
+                        <td>{this.getCpuSize(queue_metrics["deserved_milli_cpu"])}</td>
+                    </tr>
+                    <tr if={"preemptible_memory_bytes" in queue_metrics}>
+                        <td>Preemptible memory</td>
+                        <td>{this.bytesToSize(queue_metrics["preemptible_memory_bytes"])}</td>
+                    </tr>
+                    <tr if={"preemptible_milli_cpu" in queue_metrics}>
+                        <td>Preemptible cpus</td>
+                        <td>{this.getCpuSize(queue_metrics["preemptible_milli_cpu"])}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="jobs-overview" if={queue_jobs.length !== 0  && this.state.expanded}>
+                <h6><strong>Jobs</strong></h6>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Creation</th>
+                        <th>Status</th>
+                        <th>Replicas</th>
+                        <th>Pending</th>
+                        <th>Running</th>
+                        <th>Succeeded</th>
+                        <th>Failed</th>
+                        <th>Unknown</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr each={job in queue_jobs} class="job-name">
+                        <td>{job.name}</td>
+                        <td>{getTimeago(Date.parse(job.metadata.creationTimestamp))}</td>
+                        <td>{job.status.state.phase}</td>
+                        <td>{job.spec.tasks.reduce((replicas, task) => replicas + task.replicas, 0)}</td>
+                        <td>{job.status.pending || 0}</td>
+                        <td>{job.status.running || 0}</td>
+                        <td>{job.status.succeeded || 0}</td>
+                        <td>{job.status.failed || 0}</td>
+                        <td>{job.status.unknown || 0}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <parent_queue if={this.state.expanded} queues={props.queues} parent={props.item.fullname} metrics={props.metrics} jobs={props.jobs} />
+    </li>
+    <style>
+        .job-name {
+            font-size: 14px;
+        }
+        .metrics-overview {
+            margin-left: 72px;
+            font-size: 14px;
+        }
+        .jobs-overview {
+            margin-left: 72px;
+        }
+        .progress-capacity{
+            overflow: inherit;
+            display: inline-block;
+            width: calc(100% - 72px);
+        }
+
+        .progress-bar{
+            position: relative;
+        }
+
+        .progress-label {
+            font-size: 14px;
+            width: 72px;
+            display: inline-block;
+            vertical-align: top;
+            text-align: center;
+        }
+
+        .progress-under {
+            position: absolute;
+            right: -35px;
+            bottom: -18px;
+            width: 70px;
+            color: black;
+        }
+    </style>
+    <script>
+        export default {
+            onBeforeMount(props, state) {
+                this.state = {
+                    expanded: false,
+                }
+                this.setValues(props, state)
+            },
+            onBeforeUpdate(props, state) {
+                this.setValues(props, state)
+            },
+            setValues(props) {
+                this.queue_metrics = props.metrics[props.item.fullname]
+                this.queue_jobs = props.jobs.filter((job) => job.parent == props.item.fullname)
+
+                const parent_queue = props.queues.find((queue) => props.item.parent == queue.fullname && props.item.parent != undefined)
+
+                this.totalweights = parent_queue ? props.metrics[parent_queue.fullname]["total_hierarchy_weights"] : 1
+
+                this.progress = this.calculateProgress(props, this.queue_metrics)
+            },
+            calculateProgress(props, queue_metrics) {
+
+                if (!("deserved_share" in queue_metrics && "share" in queue_metrics)) {
+                    return undefined
+                }
+                const { deserved_share, share } = queue_metrics
+
+                const unavailable = props.queues.filter((queue) => props.item.parent == queue.parent && queue.fullname != props.item.fullname &&  props.item.parent != undefined).map((queue) => {
+                    const { deserved_share, share } = props.metrics[queue.fullname]
+                    if (share > deserved_share) {
+                        return deserved_share
+                    } else {
+                        return share
+                    }
+                }).reduce((a, b) => a + b, 0)
+                // if you use more then your share
+                if (share > deserved_share) {
+                    return {
+                        used: deserved_share,
+                        deserved: 0,
+                        overused: share - deserved_share,
+                        claimable: (1 - share - unavailable),
+                        unavailable: unavailable
+                    }
+                }
+                // if you use less then your share
+                return {
+                    used: share,
+                    deserved: deserved_share - share,
+                    overused: 0,
+                    claimable: (1 - deserved_share - unavailable),
+                    unavailable: unavailable
+                }
+            },
+            getPercentage(percentage) {
+                return parseFloat(parseFloat(percentage * 100).toFixed(2))
+            },
+            getWidth(percentage) {
+                const width = parseFloat(parseFloat(percentage * 100).toFixed(2))
+                return "width: " + width + "%; border-right: " + ((width > 2) ? "2" : "0")  + "px solid black"
+            },
+            expand() {
+                this.update({expanded: !this.state.expanded })
+            },
+            bytesToSize(bytes) {
+                const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+                if (bytes == 0) return '0 Byte';
+                const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+                return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
+            },
+            getCpuSize(size) {
+                return parseFloat((size / 1000).toFixed(2)) + " cpus"
+            },
+            getTimeago(date) {
+                return timeago.format(date)
+            }
+        }
+    </script>
+</child_queue>

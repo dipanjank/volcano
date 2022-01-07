@@ -1,0 +1,129 @@
+<treeview>
+  <div>
+    <div class="progress">
+      <div class="progress-bar progress-bar-minimal progress-bar-example">
+        Min capacity
+      </div>
+      <div class="progress-bar progress-bar-success progress-bar-example">
+        Used
+      </div>
+      <div class="progress-bar progress-bar-warning progress-bar-example">
+        Overused
+      </div>
+      <div class="progress-bar progress-bar-claimable progress-bar-example">
+        Claimable
+      </div>
+      <div class="progress-bar progress-bar-unavailable progress-bar-example">
+        Unavailable
+      </div>
+    </div>
+    <br>
+  </div>
+  <parent_queue queues={this.state.queues} metrics={this.state.metrics} jobs={this.state.jobs}/>
+  <style>
+
+    .progress-bar-example{
+      width: 20%;
+    }
+
+    ul {
+      padding-left: 5px;
+      list-style: none;
+    }
+
+    li {
+      position: relative;
+      padding-top: 5px;
+      padding-bottom: 5px;
+      padding-left: 15px;
+      -webkit-box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      box-sizing: border-box;
+      margin-bottom: 0;
+    }
+
+    li:before {
+      position: absolute;
+      top: 15px;
+      left: 0;
+      width: 10px;
+      height: 1px;
+      margin: auto;
+      content: '';
+      background-color: #666;
+    }
+
+    li:after {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 1px;
+      height: 100%;
+      content: '';
+      background-color: #666;
+    }
+
+    li:last-child:after {
+      height: 15px;
+    }
+
+    treeview ul{
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+
+    li > div:hover {
+      border: 1px solid black;
+      cursor: pointer;
+    }
+
+    .progress-bar-claimable {
+      background-color: #f5f5f5;
+      color: black;
+      border-right: 2px solid black;
+      position: relative;
+    }
+
+    .progress-bar-minimal {
+      background-color: #dcdcdc;
+      color: black;
+      border-right: 2px solid black;
+    }
+    .progress-bar-success {
+      border-right: 2px solid black;
+    }
+
+    .progress-bar-unavailable {
+      background-color: #555555;
+      color: white;
+      border-right: 2px solid black;
+    }
+
+    .progress-bar-warning {
+      border-right: 2px solid black;
+    }
+  </style>
+  <script>
+    export default {
+      onBeforeMount(props, state) {
+        this.state = {
+          queues: props.queues,
+          jobs: props.jobs,
+          metrics: props.metrics
+        }
+      },
+      updateData(data) {
+        this.update({
+          queues: data.queues,
+          jobs: data.jobs,
+          metrics: data.metrics
+        })
+      }
+    }
+  </script>
+</treeview>
+
+
+
+

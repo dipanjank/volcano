@@ -56,7 +56,7 @@ include Makefile.def
 
 .EXPORT_ALL_VARIABLES:
 
-all: vc-scheduler vc-controller-manager vc-webhook-manager vcctl command-lines
+all: vc-scheduler vc-controller-manager vc-webhook-manager vc-dashboard vcctl command-lines
 
 init:
 	mkdir -p ${BIN_DIR}
@@ -71,13 +71,16 @@ vc-controller-manager: init
 vc-webhook-manager: init
 	go build -ldflags ${LD_FLAGS} -o=${BIN_DIR}/vc-webhook-manager ./cmd/webhook-manager
 
+vc-dashboard: init
+	go build -ldflags ${LD_FLAGS} -o=${BIN_DIR}/vc-dashboard ./cmd/dashboard
+
 vcctl: init
 	go build -ldflags ${LD_FLAGS} -o=${BIN_DIR}/vcctl ./cmd/cli
 
 image_bins: init
 	GO111MODULE=off go get github.com/mitchellh/gox
 	CC=${CC} CGO_ENABLED=0 $(GOBIN)/gox -osarch=${REL_OSARCH} -ldflags ${LD_FLAGS} -output ${BIN_DIR}/${REL_OSARCH}/vcctl ./cmd/cli
-	for name in controller-manager webhook-manager; do\
+	for name in controller-manager webhook-manager dashboard; do\
 		CC=${CC} CGO_ENABLED=0 $(GOBIN)/gox -osarch=${REL_OSARCH} -ldflags ${LD_FLAGS} -output ${BIN_DIR}/${REL_OSARCH}/vc-$$name ./cmd/$$name; \
 	done
 
@@ -88,7 +91,7 @@ image_bins: init
   	fi;
 
 images: image_bins
-	for name in controller-manager scheduler webhook-manager; do\
+	for name in controller-manager scheduler webhook-manager dashboard; do\
 		cp ${BIN_DIR}/${REL_OSARCH}/vc-$$name ./installer/dockerfile/$$name/;\
 		if [ ${REL_OSARCH} = linux/amd64 ];then\
 			docker build --no-cache -t $(IMAGE_PREFIX)-$$name:$(TAG) ./installer/dockerfile/$$name;\

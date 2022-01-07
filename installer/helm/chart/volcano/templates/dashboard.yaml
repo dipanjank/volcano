@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Release.Name }}-dashboard
+  namespace: {{ .Release.Namespace }}
+
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Release.Name }}-dashboard
+rules:
+  - apiGroups: ["batch.volcano.sh"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["scheduling.incubator.k8s.io", "scheduling.volcano.sh"]
+    resources: ["podgroups", "queues", "queues/status"]
+    verbs: ["get", "list", "watch"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Release.Name }}-dashboard-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Release.Name }}-dashboard
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Release.Name }}-dashboard
+  apiGroup: rbac.authorization.k8s.io
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: {{ .Release.Name }}-dashboard
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: volcano-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: volcano-dashboard
+  template:
+    metadata:
+      labels:
+        app: volcano-dashboard
+    spec:
+      serviceAccount: {{ .Release.Name }}-dashboard
+      {{- if .Values.basic.image_pull_secret }}
+      imagePullSecrets:
+          - name: {{ .Values.basic.image_pull_secret }}
+      {{- end }}
+      containers:
+        - name: {{ .Release.Name }}-dashboard
+          image: {{.Values.basic.dashboard_image_name}}:{{.Values.basic.image_tag_version}}
+          ports:
+            - containerPort: 8080
+          args:
+            - --logtostderr
+            - --dashboard-namespace={{ .Release.Namespace }}
+            - --dashboard-service-name={{ .Release.Name }}-dashboard-service
+            - --prometheus-url=http://prometheus-service.volcano-monitoring.svc.cluster.local:8080
+            - -v=4
+            - 2>&1
+          imagePullPolicy: "IfNotPresent"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard-service
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: volcano-dashboard
+  type: NodePort
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30005

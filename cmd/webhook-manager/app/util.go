@@ -52,9 +52,22 @@ func registerWebhookConfig(kubeClient *kubernetes.Clientset, config *options.Con
 		klog.Infof("The service of webhook manager is <%s/%s/%s>.",
 			config.WebhookName, config.WebhookNamespace, service.Path)
 	}
+
 	if service.MutatingConfig != nil {
 		for i := range service.MutatingConfig.Webhooks {
 			service.MutatingConfig.Webhooks[i].ClientConfig = clientConfig
+
+			if config.WebhookNamespaceSelector != "" && service.MutatingConfig.Webhooks[i].Name != "mutatequeue.volcano.sh" {
+				service.MutatingConfig.Webhooks[i].NamespaceSelector = &metav1.LabelSelector{
+					MatchExpressions: []metav1.LabelSelectorRequirement{
+						{
+							Key:      "name",
+							Values:   strings.Split(config.WebhookNamespaceSelector, ","),
+							Operator: metav1.LabelSelectorOpIn,
+						},
+					},
+				}
+			}
 		}
 
 		service.MutatingConfig.ObjectMeta.Name = webhookConfigName(config.WebhookName, service.Path)
@@ -69,6 +82,18 @@ func registerWebhookConfig(kubeClient *kubernetes.Clientset, config *options.Con
 	if service.ValidatingConfig != nil {
 		for i := range service.ValidatingConfig.Webhooks {
 			service.ValidatingConfig.Webhooks[i].ClientConfig = clientConfig
+
+			if config.WebhookNamespaceSelector != "" && service.MutatingConfig.Webhooks[i].Name != "validatequeue.volcano.sh" {
+				service.MutatingConfig.Webhooks[i].NamespaceSelector = &metav1.LabelSelector{
+					MatchExpressions: []metav1.LabelSelectorRequirement{
+						{
+							Key:      "name",
+							Values:   strings.Split(config.WebhookNamespaceSelector, ","),
+							Operator: metav1.LabelSelectorOpIn,
+						},
+					},
+				}
+			}
 		}
 
 		service.ValidatingConfig.ObjectMeta.Name = webhookConfigName(config.WebhookName, service.Path)
