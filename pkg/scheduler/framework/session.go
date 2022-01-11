@@ -451,7 +451,17 @@ func (ssn *Session) ScaleAllocatables(configurations []conf.Configuration) {
 		if strings.EqualFold(adjustConf.Name, "ScaleAllocatable") {
 			factors := adjustConf.Arguments
 			for _, nodeInfo := range ssn.Nodes {
+
+				unavailable := nodeInfo.Clone()
 				nodeInfo.Allocatable.ScaleResource(factors)
+				unavailable.Allocatable.Sub(nodeInfo.Allocatable)
+
+				if unavailable.Allocatable.LessEqual(unavailable.Idle) {
+					nodeInfo.Idle = unavailable.Idle.Sub(unavailable.Allocatable)
+				} else {
+					nodeInfo.Idle.Memory = 0
+					nodeInfo.Idle.MilliCPU = 0
+				}
 			}
 		}
 	}
