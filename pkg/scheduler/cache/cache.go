@@ -55,6 +55,10 @@ import (
 	schedulingapi "volcano.sh/volcano/pkg/scheduler/api"
 )
 
+const (
+	volcanoDedicatedNodeLabelName = "volcano.sh/volcano-dedicated-node"
+)
+
 func init() {
 	schemeBuilder := runtime.SchemeBuilder{
 		v1.AddToScheme,
@@ -717,6 +721,12 @@ func (sc *SchedulerCache) Snapshot() *schedulingapi.ClusterInfo {
 		RevocableNodes: make(map[string]*schedulingapi.NodeInfo),
 	}
 
+	hasDedicatedNodes := false
+	for _, value := range sc.Nodes {
+		if value, found := value.Node.Labels[volcanoDedicatedNodeLabelName]; found && (value != "true") {
+			hasDedicatedNodes = true
+		}
+	}
 	for _, value := range sc.Nodes {
 		if !value.Ready() {
 			continue
@@ -725,6 +735,10 @@ func (sc *SchedulerCache) Snapshot() *schedulingapi.ClusterInfo {
 		bindingTasks := value.GetBindingTasks()
 		if len(bindingTasks) > 0 {
 			klog.V(4).Infof("There are %d binding tasks, skip node %s", len(bindingTasks), value.Name)
+			continue
+		}
+
+		if value, found := value.Node.Labels[volcanoDedicatedNodeLabelName]; hasDedicatedNodes && !found && (value != "true") {
 			continue
 		}
 

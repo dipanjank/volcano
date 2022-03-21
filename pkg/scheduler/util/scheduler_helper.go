@@ -19,12 +19,13 @@ package util
 import (
 	"context"
 	"fmt"
-	"k8s.io/klog"
 	"math"
 	"math/rand"
 	"sort"
 	"sync"
 	"sync/atomic"
+
+	"k8s.io/klog"
 
 	"k8s.io/client-go/util/workqueue"
 	schedulerapi "k8s.io/kube-scheduler/extender/v1"
@@ -35,7 +36,6 @@ import (
 
 const (
 	baselinePercentageOfNodesToFind = 50
-	volcanoDedicatedNodeLabelName = "volcano.sh/volcano-dedicated-node"
 )
 
 var lastProcessedNodeIndex int
@@ -227,14 +227,11 @@ func SelectBestNode(nodeScores map[float64][]*api.NodeInfo) *api.NodeInfo {
 	return bestNodes[rand.Intn(len(bestNodes))]
 }
 
-// GetNodeList returns values of the map 'nodes'
+// GetNodeList returns values of the map 'nodes' g
 func GetNodeList(nodes map[string]*api.NodeInfo) []*api.NodeInfo {
 	result := make([]*api.NodeInfo, 0, len(nodes))
 	for _, nodeInfo := range nodes {
-		klog.V(3).Infof("node %s has labels %s", nodeInfo.Node.Name, nodeInfo.Node.Labels)
-		if value, exit := nodeInfo.Node.Labels[volcanoDedicatedNodeLabelName]; exit && (value == "true"){
-			result = append(result, nodeInfo)
-		}
+		result = append(result, nodeInfo)
 	}
 	return result
 }
