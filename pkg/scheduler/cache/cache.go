@@ -723,7 +723,7 @@ func (sc *SchedulerCache) Snapshot() *schedulingapi.ClusterInfo {
 
 	hasDedicatedNodes := false
 	for _, value := range sc.Nodes {
-		if value, found := value.Node.Labels[volcanoDedicatedNodeLabelName]; found && (value != "true") {
+		if value, found := value.Node.Labels[volcanoDedicatedNodeLabelName]; found && (value == "true") {
 			hasDedicatedNodes = true
 		}
 	}
